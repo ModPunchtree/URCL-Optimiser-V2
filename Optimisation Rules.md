@@ -1,0 +1,727 @@
+
+# URCL Optimisation Rules
+
+These optimisations can all be applied independently to URCL code.
+
+To optimise a URCL program as much as possible, all rules should be applied repeatedly until the code cannot be improved by any of the rules.
+
+## Code Cleaning
+
+Optimsations focused on removing useless parts of the code and transforming it into easier to parse code.
+
+#
+
+### Remove Comments:
+
+Delete all line and multi-line comments.
+
+This rule may:
+- Not delete any instructions
+- Not delete any labels
+
+Example:
+```
+/*
+Multi-line comment
+*/
+ADD R1 R2 R3 // line comment
+```
+Optimises to:
+```
+ADD R1 R2 R3
+```
+
+#
+
+### Remove Empty Lines
+
+Delete empty lines.
+
+This rule may:
+- Not delete any instructions
+- Not delete any labels
+
+Example:
+```
+IMM R1 5
+
+ADD R1 R2 R3
+```
+Optimises to:
+```
+IMM R1 5
+ADD R1 R2 R3
+```
+
+#
+
+### Define Macros
+
+Resolve and remove `@DEFINE` macros.
+
+This will raise a warning if there are unused define macros.
+
+This will raise an exception if there are macros other than define ones or if a define macro has more than 2 tokens associated with it.
+
+This rule may:
+- Delete @DEFINE macros
+- Replace operands within instructions
+
+Example:
+```
+@DEFINE hi R1
+IMM hi 5
+```
+Optimises to:
+```
+IMM R1 5
+```
+
+#
+
+### Convert Bases
+
+Convert all base 2 and base 16 numbers to base 10.
+
+This rule may:
+- Replace operands within instructions
+
+Example:
+```
+IMM R1 0b101
+```
+Optimises to:
+```
+IMM R1 5
+```
+
+#
+
+### Fix Negative Values
+
+Convert all negative immediate values (ignoring relative values) into positive values.
+
+This rule may:
+- Replace operands within instructions
+
+Example:
+```
+BITS 8
+IMM R1 -5
+```
+Optimises to:
+```
+BITS 8
+IMM R1 251
+```
+
+#
+
+### Fix BITS Header Syntax
+
+Remove the "==" from the BITS header if it exists.
+
+Raises an exception if ">=" or "<=" is used, as this optimiser is only designed for fixed values for BITS.
+
+Raises a warning if no BITS header is found. In this case it will assume `BITS 16`.
+
+This rule may:
+- Replace the BITS header
+
+Example:
+```
+IMM R1 0b101
+```
+Optimises to:
+```
+IMM R1 5
+```
+
+#
+
+### Convert Defined Immediates
+
+Replace defined immediates with the number that they represent.
+
+This rule may:
+- Replace operands within instructions
+
+Example:
+```
+BITS 8
+IMM R1 @MAX
+```
+Optimises to:
+```
+BITS 8
+IMM R1 255
+```
+
+#
+
+### Relatives to Labels:
+
+Converts all relative values into unique labels.
+
+This rule may:
+- Not delete any instructions
+- Replace operands within instructions
+- Add new labels to the code
+
+Example:
+```
+JMP ~+0
+```
+Optimises to:
+```
+.label
+JMP .label
+```
+
+#
+
+### Remove Unused Labels:
+
+Removes any labels that are not referenced by any of the instructions.
+
+This rule may:
+- Not delete any instructions
+- Delete labels
+
+Example:
+```
+.label
+NOP
+```
+Optimises to:
+```
+NOP
+```
+
+#
+
+### Remove Multi-Labels:
+
+Replaces multiple labels that point to the same instruction with one label. Replacing all instants of the removed labels with the label not deleted.
+
+This rule may:
+- Not delete any instructions
+- Delete labels
+- Replace operands within instructions
+
+Example:
+```
+.label
+.test
+.hello
+IMM R1 .test
+IMM R2 .hello
+```
+Optimises to:
+```
+.label
+IMM R1 .label
+IMM R2 .label
+```
+
+#
+
+### Move DW Values:
+
+Moves all DW values within the code to the end of the code.
+
+Labels that point to DW values are moved along with the DW values.
+
+The sequential order of the DW values are preseved when moving them.
+
+    WARNING - This will break code that contains labels that point to the end of DW values, as these will not be seen as labels that point to the DW values.
+
+This rule may:
+- Not delete any instructions
+- Move DW values
+- Move labels
+
+Example:
+```
+.label
+.test
+.hello
+IMM R1 .test
+IMM R2 .hello
+```
+Optimises to:
+```
+.label
+IMM R1 .label
+IMM R2 .label
+```
+
+#
+
+### Remove Unreachable Code:
+
+Deletes unreachable sections of code. Sections of code are deemed unreachable if it does not start with a label that is referenced somewhere else in the program (self-reference doesn't count).
+
+This rule may:
+- Delete instructions
+- Not delete labels
+
+Example:
+```
+JMP .label
+IMM R1 1
+.label
+```
+Optimises to:
+```
+JMP .label
+.label
+```
+
+#
+
+### Recalculate Headers
+
+Deletes the old header information and replaces it with the least expensive header information calculated by the optimiser.
+
+This may add headers if the source code is missing them.
+
+In cases where the headers cannot be calculated, the original version of that header will be used. Or if the original header does not exist, it will omit that header entirely.
+
+This rule may:
+- Delete instructions
+- Not delete labels
+- Replace headers values
+
+Example:
+```
+BITS 8
+MINREG 15
+RUN RAM
+ADD R1 R2 R3
+```
+Optimises to:
+```
+BITS 8
+MINREG 3
+RUN RAM
+MINHEAP 0
+MINSTACK 0
+ADD R1 R2 R3
+```
+
+#
+
+#
+
+## Main Optimisations:
+
+Optimsations focused on speeding up the runtime of the code by simplifying it.
+
+#
+
+### Immediate Folding:
+Calculates the results of single instructions that only read immediate values.
+
+This rule may:
+- Delete instructions
+- Replace instructions with other instructions
+
+Example:
+```
+.label
+ADD R1 4 5
+BRZ .label R1
+```
+Optimises to:
+```
+.label
+IMM R1 9
+JMP .label
+```
+
+#
+
+### Constant Propagation:
+
+Propagates immediate values from IMM instructions forwards to future instructions.
+
+This rule may:
+- Not delete any instructions
+- Replace operands within instructions
+
+Example:
+```
+IMM R1 5
+ADD R1 R1 R2
+```
+Optimises to:
+```
+IMM R1 5
+ADD R1 5 R2
+```
+
+#
+
+### Shortcut Branches:
+
+Branches (or jumps) that branch to another JMP instruction will have their branch address updated to the location the second JMP goes to.
+
+This rule may:
+- Not delete any instructions
+- Replace operands within instructions
+
+Example:
+```
+BRZ .label R1
+.label
+JMP .label2
+.label2
+NOP
+```
+Optimises to:
+```
+BRZ .label2 R1
+.label
+JMP .label2
+.label2
+NOP
+```
+
+#
+
+### Remove Pointless Branches:
+
+Deletes branches (and jumps) that branch to the instruction immediately after that instruction.
+
+This rule may:
+- Delete instructions
+- Not delete labels
+
+Example:
+```
+BRZ .label R1
+.label
+NOP
+```
+Optimises to:
+```
+.label
+NOP
+```
+
+#
+
+### Write Before Read:
+
+Optimise code that overwrites a register twice without reading the first value.
+
+This rule may:
+- Delete instructions
+- Not delete labels
+
+Example:
+```
+IMM R1 5
+ADD R1 R2 R3
+```
+Optimises to:
+```
+ADD R1 R2 R3
+```
+
+#
+
+### JMP to Subroutine
+
+Optimise JMP instructions that jump to a CAL, RET or HLT instruction.
+
+This rule may:
+- Replace instructions with other instructions
+- Not delete labels
+
+Example:
+```
+JMP .label
+.label
+RET
+```
+Optimises to:
+```
+RET
+.label
+RET
+```
+
+Example:
+```
+JMP .label
+.label
+CAL .label
+```
+Optimises to:
+```
+CAL .label
+.label
+CAL .label
+```
+
+#
+
+### Detect Out Instructions
+
+If the code contains no OUT instructions, then delete all code as the code is deemed to do nothing.
+
+This rule may:
+- Delete all code
+
+Example:
+```
+ADD R1 R2 R3
+```
+Optimises to:
+```
+
+```
+
+#
+
+### Remove R0:
+
+Instructions that write to R0 do nothing so they are removed.
+
+Instructions that read from R0, have the R0 replaced with the immediate value of 0.
+
+This rule may:
+- Delete instructions
+- Replace operands within instructions
+
+Example:
+```
+ADD R0 R2 R3
+ADD R1 R2 R0
+```
+Optimises to:
+```
+ADD R1 R2 0
+```
+
+#
+
+### Remove NOPs:
+
+Deletes all NOP instructions.
+
+This rule may:
+- Delete instructions
+
+Example:
+```
+NOP
+NOP
+```
+Optimises to:
+```
+
+```
+
+#
+
+### Inline Branches:
+
+Sections of code that are referred to only once in the code by the address of a single branch instruction, and are otherwise inaccessable, and end with a JMP, RET or HLT instruction - are inlined.
+
+Self-references do not count.
+
+Sections of code must end in a JMP, RET or HLT instruction (unconditional branch or halt), otherwise the section cannot be moved.
+
+This rule may:
+- Move instructions
+- Delete instructions
+- Not delete labels
+
+Example:
+```
+JMP .label
+.halt
+HLT
+.label
+NOP
+JMP .halt
+```
+Optimises to:
+```
+.label
+NOP
+JMP .halt
+.halt
+HLT
+```
+
+#
+
+### Inverse Branches
+
+Optimise branch instructions that branch 2 instructions ahead followed by a JMP instruction, by inverting the branch condition.
+
+This rule may:
+- Replace instructions with other instructions
+- Delete instructions
+- Not delete labels
+
+Example:
+```
+BRZ .label R1
+JMP .test
+.label
+HLT
+.test
+HLT
+```
+Optimises to:
+```
+BNZ .test R1
+.label
+HLT
+.test
+HLT
+```
+
+#
+
+#
+
+## Single Instruction Optimisations
+
+These are optimisations that are applied to individual instructions, ignoring the rest of the program.
+
+#
+
+### ADD to LSH:
+
+Convert ADD to LSH if adding something to itself.
+
+Example:
+```
+ADD R1 R2 R2
+```
+Optimises to:
+```
+LSH R1 R2
+```
+
+#
+
+### ADD to MOV:
+
+Convert ADD to MOV if adding something to zero.
+
+Example:
+```
+ADD R1 R2 0
+```
+Optimises to:
+```
+MOV R1 R2
+```
+
+#
+
+### BGE to JMP:
+
+Convert BGE to JMP if the third operand is 0, or the second operand is @MAX.
+
+Example:
+```
+BGE .label R1 0
+BGE .label @MAX R2
+```
+Optimises to:
+```
+JMP .label
+JMP .label
+```
+
+#
+
+### BGE to BNZ:
+
+Convert BGE to BNZ if the third operand is 1.
+
+Example:
+```
+BGE .label R1 1
+```
+Optimises to:
+```
+BNZ .label R1
+```
+
+#
+
+### BGE to BRZ:
+
+Convert BGE to BRZ if the second operand is 0.
+
+Example:
+```
+BGE .label 0 R1
+```
+Optimises to:
+```
+BRZ .label R1
+```
+
+#
+
+### NOR to NOT:
+
+Convert NOR to NOT if the second or third operand is 0, or if the second and third operands are equal.
+
+Example:
+```
+NOR R1 R2 0
+NOR R1 R1 R1
+```
+Optimises to:
+```
+NOT R1 R2
+NOT R1 R1
+```
+
+#
+
+### NOR to IMM Zero:
+
+Convert NOR to IMM if the second or third operands are @MAX.
+
+Example:
+```
+BITS 8
+NOR R1 R2 255
+```
+Optimises to:
+```
+BITS 8
+IMM R1 0
+```
+
+#
+
+### MOV to IMM
+
+Convert MOV to IMM if the second operand is an immediate value or label.
+
+Example:
+```
+MOV R1 5
+```
+Optimises to:
+```
+IMM R1 5
+```
+
+#
+
+
+
