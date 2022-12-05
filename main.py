@@ -7,7 +7,7 @@ from keep_alive import keep_alive
 import asyncio
 from URCLOptimiserV2.optimiser_main import optimiseURCL
 
-client = discord.Client()
+client = discord.Client(intents=discord.Intents.default())
 
 
 @client.event
