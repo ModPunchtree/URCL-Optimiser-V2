@@ -22,10 +22,6 @@ async def on_message(message):
     
     if message.author == client.user:
         return
-
-    elif True:
-        print(str(message.content))
-        await message.channel.send(str(message.content))
     
     elif message.content.startswith("$lol"):
         if str(message.author) == "Mod Punchtree#5817":
