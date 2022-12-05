@@ -29,7 +29,7 @@ async def on_message(message):
         else:
             await message.channel.send(":regional_indicator_l::regional_indicator_o::regional_indicator_l:")
 
-    elif message.content.startswith("$help") and str(message.channel) != "urcl-bot":
+    elif message.content.startswith("$help") and str(message.channel) != "urcl-optimiser":
         await message.channel.send(":woman_shrugging:")
         return
 
