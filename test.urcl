@@ -1,4 +1,10 @@
 
-ADD R1 4 5
+// hi
 
+BITS 8
+
+IMM R1 7
+IMM R2 5
+NOP
+ADD R0 R1 R2
 

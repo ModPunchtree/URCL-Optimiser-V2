@@ -40,7 +40,28 @@ ADD R1 R2 R3
 
 #
 
-### Remove Empty Lines
+### Unify Spaces:
+
+Replaces all instances of multiple spaces, with single spaces and removes any spaces at the start of all lines.
+
+This rule may:
+- Not delete any instructions
+- Not delete any labels
+
+Example:
+```
+    IMM R1 5
+ADD R1 R2    R3
+```
+Optimises to:
+```
+IMM R1 5
+ADD R1 R2 R3
+```
+
+#
+
+### Remove Empty Lines:
 
 Delete empty lines.
 
@@ -62,7 +83,7 @@ ADD R1 R2 R3
 
 #
 
-### Define Macros
+### Define Macros:
 
 Resolve and remove `@DEFINE` macros.
 
@@ -86,7 +107,7 @@ IMM R1 5
 
 #
 
-### Convert Bases
+### Convert Bases:
 
 Convert all base 2 and base 16 numbers to base 10.
 
@@ -104,27 +125,19 @@ IMM R1 5
 
 #
 
-### Fix Negative Values
+### Tokenise:
 
-Convert all negative immediate values (ignoring relative values) into positive values.
+Splits the code into separate tokens using single spaces " ".
+
+This rule only helps with parsing, it does not change the code in any meaningful way.
 
 This rule may:
-- Replace operands within instructions
-
-Example:
-```
-BITS 8
-IMM R1 -5
-```
-Optimises to:
-```
-BITS 8
-IMM R1 251
-```
+- Not delete any instructions
+- Not delete any labels
 
 #
 
-### Fix BITS Header Syntax
+### Fix BITS Header Syntax:
 
 Remove the "==" from the BITS header if it exists.
 
@@ -146,7 +159,27 @@ IMM R1 5
 
 #
 
-### Convert Defined Immediates
+### Fix Negative Values:
+
+Convert all negative immediate values (ignoring relative values) into positive values.
+
+This rule may:
+- Replace operands within instructions
+
+Example:
+```
+BITS 8
+IMM R1 -5
+```
+Optimises to:
+```
+BITS 8
+IMM R1 251
+```
+
+#
+
+### Convert Defined Immediates:
 
 Replace defined immediates with the number that they represent.
 
@@ -251,16 +284,14 @@ This rule may:
 Example:
 ```
 .label
-.test
-.hello
-IMM R1 .test
-IMM R2 .hello
+DW 6
+IMM R1 9
 ```
 Optimises to:
 ```
+IMM R1 9
 .label
-IMM R1 .label
-IMM R2 .label
+DW 6
 ```
 
 #
@@ -287,7 +318,27 @@ JMP .label
 
 #
 
-### Recalculate Headers
+### Reduce Registers:
+
+Tries to reduce the minimum required number of registers to run a program by detecting and removing unused registers.
+
+This rule may:
+- Replace operands within instructions
+
+Example:
+```
+MINREG 2
+IMM R2 6
+```
+Optimises to:
+```
+MINREG 1
+IMM R1 6
+```
+
+#
+
+### Recalculate Headers:
 
 Deletes the old header information and replaces it with the least expensive header information calculated by the optimiser.
 
@@ -324,6 +375,47 @@ ADD R1 R2 R3
 ## Main Optimisations:
 
 Optimsations focused on speeding up the runtime of the code by simplifying it.
+
+#
+
+### Remove R0:
+
+Instructions that write to R0 do nothing so they are removed.
+
+Instructions that read from R0, have the R0 replaced with the immediate value of 0.
+
+This rule may:
+- Delete instructions
+- Replace operands within instructions
+
+Example:
+```
+ADD R0 R2 R3
+ADD R1 R2 R0
+```
+Optimises to:
+```
+ADD R1 R2 0
+```
+
+#
+
+### Remove NOPs:
+
+Deletes all NOP instructions.
+
+This rule may:
+- Delete instructions
+
+Example:
+```
+NOP
+NOP
+```
+Optimises to:
+```
+
+```
 
 #
 
@@ -485,47 +577,6 @@ This rule may:
 Example:
 ```
 ADD R1 R2 R3
-```
-Optimises to:
-```
-
-```
-
-#
-
-### Remove R0:
-
-Instructions that write to R0 do nothing so they are removed.
-
-Instructions that read from R0, have the R0 replaced with the immediate value of 0.
-
-This rule may:
-- Delete instructions
-- Replace operands within instructions
-
-Example:
-```
-ADD R0 R2 R3
-ADD R1 R2 R0
-```
-Optimises to:
-```
-ADD R1 R2 0
-```
-
-#
-
-### Remove NOPs:
-
-Deletes all NOP instructions.
-
-This rule may:
-- Delete instructions
-
-Example:
-```
-NOP
-NOP
 ```
 Optimises to:
 ```
