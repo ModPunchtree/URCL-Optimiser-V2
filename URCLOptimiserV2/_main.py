@@ -88,5 +88,5 @@ for line in code:
 if result[-1] == "\n":
     result = result[: -1]
 
-print(f"\n{result}\n\n##########\n\nBITS {BITS}\nMINREG {MINREG}")
+print(f"\n{result}")
 
