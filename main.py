@@ -46,10 +46,10 @@ async def on_message(message):
         await message.channel.send("Compiling...")
         try:
             code = message.content[9: ]
-            if code.find("```\n") != -1:
+            if code.find("```\n") == -1:
                 raise Exception("FATAL - Code block not specified (missing triple backticks: `)")
             code = code[code.index("```\n") + 4: ]
-            if code.find("```") != -1:
+            if code.find("```") == -1:
                 raise Exception("FATAL - Code block not specified (missing triple backticks: `)")
             code = code[: code.index("```")]
             
