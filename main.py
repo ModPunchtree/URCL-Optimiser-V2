@@ -5,7 +5,7 @@ import os
 from random import randint
 from keep_alive import keep_alive
 import asyncio
-from URCLOptimiserV2._main import optimiseURCL
+from URCLOptimiserV2.optimiser_main import optimiseURCL
 
 client = discord.Client()
 
