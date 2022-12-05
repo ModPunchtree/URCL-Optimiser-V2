@@ -7,8 +7,10 @@ from keep_alive import keep_alive
 import asyncio
 from URCLOptimiserV2.optimiser_main import optimiseURCL
 
-client = discord.Client(intents=discord.Intents.default())
+intents = discord.Intents.default()
+intents.message_content = True
 
+client = discord.Client(intents=intents)
 
 @client.event
 async def on_ready():
@@ -17,10 +19,14 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-
+    
     if message.author == client.user:
         return
 
+    elif True:
+        print(str(message.content))
+        await message.channel.send(str(message.content))
+    
     elif message.content.startswith("$lol"):
         if str(message.author) == "Mod Punchtree#5817":
             await message.channel.send(":regional_indicator_l::regional_indicator_o::regional_indicator_l:")
