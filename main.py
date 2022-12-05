@@ -39,7 +39,7 @@ async def on_message(message):
         return
 
     elif message.content.startswith("$help"):
-        await message.channel.send("""```c\nTo optimise URCL code do:\n$optimise```\n// URCL code goes here```To "LOL" do:\n$lol\n```""")
+        await message.channel.send("""To optimise URCL code do:\n$optimise```c\n// URCL code goes here```To "LOL" do:\n$lol\n```""")
         return
 
     elif message.content.startswith("$optimise"):
