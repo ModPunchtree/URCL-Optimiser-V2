@@ -407,7 +407,7 @@ def removeUnreachableCode(code: list):
     return code, success
 
 ### Reduce Registers
-def reduceRegisters(code: list, MINREG: int):
+def reduceRegisters(code: list):
     
     success = False
     
@@ -418,6 +418,8 @@ def reduceRegisters(code: list, MINREG: int):
                 number = int(token[1: ], 0)
                 if number not in usefulRegisters:
                     usefulRegisters.append(number)
+    
+    MINREG = calculateMINREG(code)
     
     pointer = 1
     while pointer <= MINREG:

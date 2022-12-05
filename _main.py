@@ -19,4 +19,4 @@ for line in code:
 if result[-1] == "\n":
     result = result[: -1]
 
-print(f"\n{result}")
+print(f"\n{result}\n")

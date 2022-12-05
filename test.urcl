@@ -1,10 +1,3 @@
-
-// hi
-
-BITS 8
-
-IMM R1 7
-IMM R2 5
-NOP
-ADD R0 R1 R2
-
+IMM R1 4
+HLT
+IMM R2 10

@@ -33,7 +33,7 @@ def optimiseURCL(code):
 
     code, success = removeUnreachableCode(code)
 
-    code, MINREG, success = reduceRegisters(code, MINREG)
+    code, MINREG, success = reduceRegisters(code)
 
     #########################################
 
@@ -51,7 +51,7 @@ def optimiseURCL(code):
         code, success = removeUnreachableCode(code)
         overallSuccess |= success
         
-        code, MINREG, success = reduceRegisters(code, MINREG)
+        code, MINREG, success = reduceRegisters(code)
         overallSuccess |= success
         
         return code, MINREG, overallSuccess
