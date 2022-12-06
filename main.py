@@ -69,6 +69,7 @@ async def on_message(message):
         f = open("output.txt", "w")
         f.write(result)
         f.close()
+        await message.channel.send(f"Success!\nNumber of optimisations applied: {optimisationCount}")
         await message.channel.send(file=discord.File("output.txt"))
         return
 
