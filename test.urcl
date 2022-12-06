@@ -1,9 +1,8 @@
-
-IMM R1 5
-BRE R2 R2 R3
-IMM R5 10
-OUT %NUMB R1
+JMP .label
+.label2
 HLT
-
-
-
+.label
+ADD R1 R2 R3
+BRZ .label R1
+OUT %NUMB R1
+JMP .label2

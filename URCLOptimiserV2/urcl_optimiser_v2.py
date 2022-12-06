@@ -2125,3 +2125,55 @@ def detectOUT(code: list):
 
     return [], success
 
+### Inline Branches
+def inlineBranches(code: list):
+    
+    success = False
+    
+    for index, line in enumerate(code):
+        if line[0].startswith("."):
+            label = line[0]
+            
+            pointer1 = index
+            pointer2 = pointer1 + 1
+            bad = False
+            while pointer2 < len(code):
+                if code[pointer2][0].startswith("."):
+                    bad = True
+                    break
+                elif code[pointer2][0] in ("JMP", "HLT", "RET"):
+                    pointer2 += 1
+                    break
+                else:
+                    pointer2 += 1
+            
+            if not bad:
+                codeBlock = code[pointer1: pointer2]
+                code2 = code[: pointer1] + code[pointer2: ]
+                
+                # find if label is unique to one JMP in code2
+                
+                count = 0
+                target = ""
+                for index2, line2 in enumerate(code2):
+                    if (line2.count(label)) and (line2[0] != "JMP"):
+                        count = 2
+                        break
+                    elif line2.count(label):
+                        target = index2
+
+                    count += line2.count(label)
+                
+                if count == 1:
+                    code = code2[: target] + codeBlock + code2[target + 1: ]
+
+                    success = True
+                    
+                    return inlineBranches(code)[0], success
+            
+    return code, success
+
+
+
+
+

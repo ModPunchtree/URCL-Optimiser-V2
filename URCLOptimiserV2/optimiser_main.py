@@ -108,6 +108,23 @@ def optimiseURCL(code):
         code, success = detectOUT(code)
         overallSuccess |= success
         optimisationCount += int(success)
+        
+        code, success = inlineBranches(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+
+    headers = [
+        ["BITS", str(BITS)],
+        ["MINREG", str(MINREG)],
+        ["MINHEAP", str(MINHEAP)],
+        ["MINSTACK", str(MINSTACK)],
+        ["RUN", RUN]
+        ]
+    
+    code = headers + code
+    
+    if code[-1: ] != [["HLT"]]:
+        code.append(["HLT"])
 
     return code, optimisationCount
 
