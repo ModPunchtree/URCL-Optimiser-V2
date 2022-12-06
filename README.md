@@ -419,49 +419,6 @@ Optimises to:
 
 #
 
-### Immediate Folding:
-Calculates the results of single instructions that only read immediate values.
-
-This rule may:
-- Delete instructions
-- Replace instructions with other instructions
-
-Example:
-```
-.label
-ADD R1 4 5
-BRZ .label R1
-```
-Optimises to:
-```
-.label
-IMM R1 9
-JMP .label
-```
-
-#
-
-### Constant Propagation:
-
-Propagates immediate values from IMM instructions forwards to future instructions.
-
-This rule may:
-- Not delete any instructions
-- Replace operands within instructions
-
-Example:
-```
-IMM R1 5
-ADD R1 R1 R2
-```
-Optimises to:
-```
-IMM R1 5
-ADD R1 5 R2
-```
-
-#
-
 ### Shortcut Branches:
 
 Branches (or jumps) that branch to another JMP instruction will have their branch address updated to the location the second JMP goes to.
@@ -511,27 +468,7 @@ NOP
 
 #
 
-### Write Before Read:
-
-Optimise code that overwrites a register twice without reading the first value.
-
-This rule may:
-- Delete instructions
-- Not delete labels
-
-Example:
-```
-IMM R1 5
-ADD R1 R2 R3
-```
-Optimises to:
-```
-ADD R1 R2 R3
-```
-
-#
-
-### JMP to Subroutine
+### JMP to Subroutine:
 
 Optimise JMP instructions that jump to a CAL, RET or HLT instruction.
 
@@ -567,7 +504,70 @@ CAL .label
 
 #
 
-### Detect Out Instructions
+### Immediate Folding:
+Calculates the results of single instructions that only read immediate values.
+
+This rule may:
+- Delete instructions
+- Replace instructions with other instructions
+
+Example:
+```
+.label
+ADD R1 4 5
+BRZ .label R1
+```
+Optimises to:
+```
+.label
+IMM R1 9
+JMP .label
+```
+
+#
+
+### Immediate Propagation:
+
+Propagates immediate values from IMM instructions forwards to future instructions.
+
+This rule may:
+- Not delete any instructions
+- Replace operands within instructions
+
+Example:
+```
+IMM R1 5
+ADD R1 R1 R2
+```
+Optimises to:
+```
+IMM R1 5
+ADD R1 5 R2
+```
+
+#
+
+### Write Before Read:
+
+Optimise code that overwrites a register twice without reading the first value.
+
+This rule may:
+- Delete instructions
+- Not delete labels
+
+Example:
+```
+IMM R1 5
+ADD R1 R2 R3
+```
+Optimises to:
+```
+ADD R1 R2 R3
+```
+
+#
+
+### Detect OUT Instructions:
 
 If the code contains no OUT instructions, then delete all code as the code is deemed to do nothing.
 

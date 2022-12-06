@@ -63,12 +63,51 @@ def optimiseURCL(code):
         
         code, MINREG, success = loopingCodeCleaner(code, MINREG)
         overallSuccess |= success
+        optimisationCount += int(success)
         
         code, success = removeR0(code)
         overallSuccess |= success
+        optimisationCount += int(success)
         
         code, success = removeNOPs(code)
         overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = shortcutBranches(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = pointlessBranches(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = JMP2Subroutine(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = fullImmediateFolding(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = partialImmediateFolding(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = noImmediateFolding(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = immediatePropagation(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = writeBeforeRead(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = detectOUT(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
 
     return code, optimisationCount
 

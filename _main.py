@@ -16,7 +16,7 @@ for line in code:
     result += " ".join(line)
     result += "\n"
 
-if result[-1] == "\n":
+if result[-1: ] == "\n":
     result = result[: -1]
 
 print(f"\n{result}\n")
