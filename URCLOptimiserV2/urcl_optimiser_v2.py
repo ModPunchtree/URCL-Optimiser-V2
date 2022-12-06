@@ -2173,7 +2173,218 @@ def inlineBranches(code: list):
             
     return code, success
 
+### Inverse Branches
+def inverseBranches(code: list):
+    
+    success = False
+    
+    invertableBranches = (
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BOD",
+        "BEV",
+        "BLE",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    inverseInvertableBranches = (
+        "BGE",
+        "BLE",
+        "BNE",
+        "BRE",
+        "BEV",
+        "BOD",
+        "BRG",
+        "BNZ",
+        "BRZ",
+        "BRP",
+        "BRN",
+        "SBGE",
+        "SBLE",
+        "SBRG",
+        "SBRL"
+    )
+    
+    for index, line in enumerate(code[: -2]):
+        if line[0] in invertableBranches:
+            if line[1].startswith("."):
+                location1 = line[1]
+                if code[index + 2][0] == location1:
+                    if code[index + 1][0] == "JMP":
+                        location2 = code[index + 1][1] # doesnt matter if reg or label
+                        
+                        inverse = inverseInvertableBranches[invertableBranches.index(line[0])]
+                        
+                        new = [inverse, location2] + line[2: ]
+                        
+                        code[index] = new.copy()
+                        code[index + 1] = [""]
+                        success = True
+    
+    code, success2 = removeEmptyLines(code)
+    success |= success2
+    
+    return code, success
 
-
+### Pointless Writes
+def pointlessWrites(code: list, MINREG: int):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for regNum in range(MINREG):
+        reg = f"R{regNum + 1}"
+        
+        useful = False
+        for line in code:
+            if (line[0] in read2and3) or (line[0] in read2):
+                if reg in line[2:]:
+                    useful = True
+                    break
+            elif (line[0] in read1and2and3) or (line[0] in read1) or (line[0] in read1and2):
+                if reg in line:
+                    useful = True
+                    break
+            
+        if not useful:
+            for index, line in enumerate(code):
+                if line[0] in write1:
+                    if line[1] == reg:
+                        code[index] = [""]
+            
+            code, success2 = removeEmptyLines(code)
+            success |= success2
+    
+    return code, success
 
 

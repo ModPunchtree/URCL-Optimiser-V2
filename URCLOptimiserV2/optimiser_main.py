@@ -112,6 +112,14 @@ def optimiseURCL(code):
         code, success = inlineBranches(code)
         overallSuccess |= success
         optimisationCount += int(success)
+        
+        code, success = inverseBranches(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = pointlessWrites(code, MINREG)
+        overallSuccess |= success
+        optimisationCount += int(success)
 
     headers = [
         ["BITS", str(BITS)],

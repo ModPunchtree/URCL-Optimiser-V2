@@ -647,6 +647,25 @@ HLT
 
 #
 
+### Pointless Writes:
+
+Instructions that write to registers that are never read anywhere in the entire program are removed.
+
+This rule may:
+- Delete instructions
+
+Example:
+```
+IMM R1 5
+HLT
+```
+Optimises to:
+```
+HLT
+```
+
+#
+
 #
 
 ## Single Instruction Optimisations
@@ -766,7 +785,7 @@ IMM R1 0
 
 #
 
-### MOV to IMM
+### MOV to IMM:
 
 Convert MOV to IMM if the second operand is an immediate value or label.
 
