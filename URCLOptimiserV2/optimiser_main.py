@@ -25,6 +25,8 @@ def optimiseURCL(code):
 
     code, uniqueNum, success = relativesToLabels(code, uniqueNum)
 
+    code, success = standardiseSymbols(code)
+
     code, success = removeUnusedLabels(code)
 
     code, success = removeMultiLabels(code)
@@ -118,6 +120,10 @@ def optimiseURCL(code):
         optimisationCount += int(success)
         
         code, success = pointlessWrites(code, MINREG)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = duplicateLOD(code)
         overallSuccess |= success
         optimisationCount += int(success)
 

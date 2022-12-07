@@ -220,6 +220,24 @@ JMP .label
 
 #
 
+### Standardise Symbols
+
+Replaces '#' with 'M' and '$' with 'R'. Capitalises all letters in the code except for labels, and any text in quotes or double quotes.
+
+This rule may:
+- Not change the code in any meaningful way
+
+Example:
+```
+lod r1 #1
+```
+Optimises to:
+```
+LOD R1 M1
+```
+
+#
+
 ### Remove Unused Labels:
 
 Removes any labels that are not referenced by any of the instructions.
@@ -666,6 +684,27 @@ HLT
 
 #
 
+### Duplicate Loads:
+
+Loading a value using an immediate address more than once without overwriting the original value is optimised by removing the unneeded LOD instructions.
+
+This rule may:
+- Delete instructions
+
+Example:
+```
+LOD R1 M1
+ADD R2 R1 5
+LOD R1 M1
+```
+Optimises to:
+```
+LOD R1 M1
+ADD R2 R1 5
+```
+
+#
+
 #
 
 ## Single Instruction Optimisations
@@ -800,6 +839,17 @@ IMM R1 5
 
 #
 
+#
+
+## Instruction Pair Optimisations
+
+Optimisations that are applied to pairs of sequential instructions.
+
+#
+
+### LODSTR:
+
+#
 
 
 

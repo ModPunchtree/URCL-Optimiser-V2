@@ -309,6 +309,25 @@ def relativesToLabels(code: list, uniqueNum: int):
             
     return code, uniqueNum, success
 
+### Standardise Symbols
+def standardiseSymbols(code: list):
+    
+    success = False
+    
+    for index, line in enumerate(code):
+        if not line[0].startswith("."):
+            for index2, token in enumerate(line):
+                if token.startswith("$"):
+                    code[index][index2] = code[index][index2].replace("$", "R")
+                    success = True
+                if token.startswith("#"):
+                    code[index][index2] = code[index][index2].replace("#", "M")
+                    success = True
+                if (token.count("'") != 2) and (token.count('"') != 2):
+                    code[index][index2] = code[index][index2].upper()
+    
+    return code, success
+
 ### Remove Unused Labels
 def removeUnusedLabels(code: list):
     
@@ -333,7 +352,6 @@ def removeUnusedLabels(code: list):
                 success = True
 
     return removeEmptyLines(code)[0], success
-
 
 ### Remove Multi-Labels
 def removeMultiLabels(code: list):
@@ -2386,5 +2404,74 @@ def pointlessWrites(code: list, MINREG: int):
             success |= success2
     
     return code, success
+
+### Duplicate Loads
+def duplicateLOD(code):
+    
+    write1MinusLOD = (
+        "ADD",
+        "RSH",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index1, line1 in enumerate(code):
+        if line1[0] == "LOD":
+            reg = line1[1]
+            target = line1[2]
+            if target.startswith((".", "M")):
+                for index2, line2 in enumerate(code[index1 + 1: ]):
+                    if line2[0] in write1MinusLOD:
+                        if line2[1] == reg:
+                            break
+                    elif line2[0] == "LOD":
+                        if (line2[1] == reg) and (line2[2] == target):
+                            code[index1 + 1 + index2] = [""]
+                        elif line2[1] == reg:
+                            break
+                    elif line2[0].startswith("."):
+                        break
+    
+    code, success = removeEmptyLines(code)
+    
+    return code, success
+
+
 
 
