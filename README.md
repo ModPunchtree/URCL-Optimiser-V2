@@ -150,11 +150,11 @@ This rule may:
 
 Example:
 ```
-IMM R1 0b101
+BITS == 8
 ```
 Optimises to:
 ```
-IMM R1 5
+BITS 8
 ```
 
 #
