@@ -3197,6 +3197,84 @@ def STRLOD(code: list):
 ### ADDADD
 def ADDADD(code: list, BITS: int):
     
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
     write1 = (
         "ADD",
         "RSH",
@@ -3257,7 +3335,7 @@ def ADDADD(code: list, BITS: int):
                 originalImm = line[3]
             else:
                 bad = True
-                
+            
             if not bad:
                 for index2, line2 in enumerate(code[index + 1: ]):
                     if line2[0] == "ADD":
@@ -3267,6 +3345,8 @@ def ADDADD(code: list, BITS: int):
                                     newImm = str((int(originalImm, 0) + int(line2[3], 0)) & MAX)
                                     answer = ["ADD", intermediateReg, originalReg, newImm]
                                     code[index + 1 + index2] = answer.copy()
+                                    if intermediateReg == originalReg:
+                                        code[index] = [""]
                                     success = True
                                     break
                             elif line2[3] == intermediateReg:
@@ -3274,6 +3354,8 @@ def ADDADD(code: list, BITS: int):
                                     newImm = str((int(originalImm, 0) + int(line2[2], 0)) & MAX)
                                     answer = ["ADD", intermediateReg, originalReg, newImm]
                                     code[index + 1 + index2] = answer.copy()
+                                    if intermediateReg == originalReg:
+                                        code[index] = [""]
                                     success = True
                                     break
                     
@@ -3282,13 +3364,117 @@ def ADDADD(code: list, BITS: int):
                     elif line2[0] in write1:
                         if (line2[1] == intermediateReg) or (line2[1] == originalReg):
                             break
-                
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
+
     return code, success
 
 ### SUBSUB
 def SUBSUB(code: list, BITS: int):
     
     success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
     
     write1 = (
         "ADD",
@@ -3361,12 +3547,16 @@ def SUBSUB(code: list, BITS: int):
                                         newImm = str((int(originalImm, 0) + (MAX - int(line2[3], 0) + 1)) & MAX) # x1 - x2
                                         answer = ["SUB", intermediateReg, newImm, originalReg]
                                         code[index + 1 + index2] = answer.copy()
+                                        if intermediateReg == originalReg:
+                                            code[index] = [""]
                                         success = True
                                         break
                                     elif state == 3:
                                         newImm = str(int(originalImm, 0) + int(line2[3], 0)) # x1 + x2
                                         answer = ["SUB", intermediateReg, originalReg, newImm]
                                         code[index + 1 + index2] = answer.copy()
+                                        if intermediateReg == originalReg:
+                                            code[index] = [""]
                                         success = True
                                         break
                             elif line2[3] == intermediateReg:
@@ -3375,12 +3565,16 @@ def SUBSUB(code: list, BITS: int):
                                         newImm = str((int(originalImm, 0) + (MAX - int(line2[2], 0) + 1)) & MAX) # x1 - x2
                                         answer = ["SUB", intermediateReg, originalReg, newImm]
                                         code[index + 1 + index2] = answer.copy()
+                                        if intermediateReg == originalReg:
+                                            code[index] = [""]
                                         success = True
                                         break
                                     elif state == 3:
                                         newImm = str(int(originalImm, 0) + int(line2[2], 0)) # x1 + x2
                                         answer = ["SUB", intermediateReg, newImm, originalReg]
                                         code[index + 1 + index2] = answer.copy()
+                                        if intermediateReg == originalReg:
+                                            code[index] = [""]
                                         success = True
                                         break
                                     
@@ -3389,6 +3583,32 @@ def SUBSUB(code: list, BITS: int):
                     elif line2[0] in write1:
                         if (line2[1] == intermediateReg) or (line2[1] == originalReg):
                             break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
     
     return code, success
 
@@ -3396,6 +3616,84 @@ def SUBSUB(code: list, BITS: int):
 def INCINC(code: list):
     
     success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
     
     write1 = (
         "ADD",
@@ -3452,14 +3750,42 @@ def INCINC(code: list):
                         if line2[2] == intermediateReg:
                             answer = ["ADD", intermediateReg, originalReg, "2"]
                             code[index + 1 + index2] = answer.copy()
+                            if intermediateReg == originalReg:
+                                code[index] = [""]
                             success = True
                             break
-                
+            
                 if line2[0].startswith("."):
                     break
                 elif line2[0] in write1:
                     if (line2[1] == intermediateReg) or (line2[1] == originalReg):
                         break
+                elif intermediateReg == originalReg:
+                    if line2[0] in read2and3:
+                        if line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read2:
+                        if line2[2] == originalReg:
+                            break
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read1:
+                        if line2[1] == originalReg:
+                            break
+                    elif line2[0] in read1and2:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+            
+    code, success2 = removeEmptyLines(code)
     
     return code, success
 
@@ -3467,6 +3793,84 @@ def INCINC(code: list):
 def DECDEC(code: list):
     
     success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
     
     write1 = (
         "ADD",
@@ -3523,14 +3927,42 @@ def DECDEC(code: list):
                         if line2[2] == intermediateReg:
                             answer = ["SUB", intermediateReg, originalReg, "2"]
                             code[index + 1 + index2] = answer.copy()
+                            if intermediateReg == originalReg:
+                                code[index] = [""]
                             success = True
                             break
-                
+            
                 if line2[0].startswith("."):
                     break
                 elif line2[0] in write1:
                     if (line2[1] == intermediateReg) or (line2[1] == originalReg):
                         break
+                elif intermediateReg == originalReg:
+                    if line2[0] in read2and3:
+                        if line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read2:
+                        if line2[2] == originalReg:
+                            break
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read1:
+                        if line2[1] == originalReg:
+                            break
+                    elif line2[0] in read1and2:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+            
+    code, success2 = removeEmptyLines(code)
     
     return code, success
 
@@ -3581,6 +4013,84 @@ def ADDSUB(code: list, BITS: int):
         "IN"
     )
     
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
     success = False
     
     MAX = 2**BITS - 1
@@ -3607,6 +4117,8 @@ def ADDSUB(code: list, BITS: int):
                                     newImm = str((int(originalImm, 0) + (MAX - int(line2[3], 0) + 1)) & MAX) # x1 - x2
                                     answer = ["SUB", intermediateReg, newImm, originalReg]
                                     code[index + 1 + index2] = answer.copy()
+                                    if intermediateReg == originalReg:
+                                        code[index] = [""]
                                     success = True
                                     break
                             elif line2[3] == intermediateReg:
@@ -3614,6 +4126,8 @@ def ADDSUB(code: list, BITS: int):
                                     newImm = str((int(line2[2], 0) + (MAX - int(originalImm, 0) + 1)) & MAX) # x2 - x1
                                     answer = ["ADD", intermediateReg, originalReg, newImm]
                                     code[index + 1 + index2] = answer.copy()
+                                    if intermediateReg == originalReg:
+                                        code[index] = [""]
                                     success = True
                                     break
                         
@@ -3622,6 +4136,32 @@ def ADDSUB(code: list, BITS: int):
                     elif line2[0] in write1:
                         if (line2[1] == intermediateReg) or (line2[1] == originalReg):
                             break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
 
     return code, success
 
@@ -3672,6 +4212,84 @@ def ADDINC(code: list, BITS: int):
         "IN"
     )
     
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
     success = False
     
     MAX = 2**BITS - 1
@@ -3697,6 +4315,8 @@ def ADDINC(code: list, BITS: int):
                                 newImm = str((int(originalImm, 0) + 1) & MAX)
                                 answer = ["ADD", intermediateReg, originalReg, newImm]
                                 code[index + 1 + index2] = answer.copy()
+                                if intermediateReg == originalReg:
+                                    code[index] = [""]
                                 success = True
                                 break
                     
@@ -3705,6 +4325,32 @@ def ADDINC(code: list, BITS: int):
                     elif line2[0] in write1:
                         if (line2[1] == intermediateReg) or (line2[1] == originalReg):
                             break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
     
     return code, success
 
@@ -3755,6 +4401,84 @@ def ADDDEC(code: list, BITS: int):
         "IN"
     )
     
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
     success = False
     
     MAX = 2**BITS - 1
@@ -3780,6 +4504,8 @@ def ADDDEC(code: list, BITS: int):
                                 newImm = str((int(originalImm, 0) + MAX) & MAX)
                                 answer = ["ADD", intermediateReg, originalReg, newImm]
                                 code[index + 1 + index2] = answer.copy()
+                                if intermediateReg == originalReg:
+                                    code[index] = [""]
                                 success = True
                                 break
                     
@@ -3788,6 +4514,32 @@ def ADDDEC(code: list, BITS: int):
                     elif line2[0] in write1:
                         if (line2[1] == intermediateReg) or (line2[1] == originalReg):
                             break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
     
     return code, success
 
@@ -3795,6 +4547,84 @@ def ADDDEC(code: list, BITS: int):
 def SUBINC(code: list, BITS: int):
     
     success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
     
     write1 = (
         "ADD",
@@ -3866,12 +4696,16 @@ def SUBINC(code: list, BITS: int):
                                     newImm = str((int(originalImm, 0) + MAX) & MAX) # x1 - 1
                                     answer = ["SUB", intermediateReg, originalReg, newImm]
                                     code[index + 1 + index2] = answer.copy()
+                                    if intermediateReg == originalReg:
+                                        code[index] = [""]
                                     success = True
                                     break
                                 elif state == 2:
                                     newImm = str((int(originalImm, 0) + 1) & MAX) # x1 + 1
                                     answer = ["SUB", intermediateReg, newImm, originalReg]
                                     code[index + 1 + index2] = answer.copy()
+                                    if intermediateReg == originalReg:
+                                        code[index] = [""]
                                     success = True
                                     break
                     
@@ -3880,6 +4714,32 @@ def SUBINC(code: list, BITS: int):
                     elif line2[0] in write1:
                         if (line2[1] == intermediateReg) or (line2[1] == originalReg):
                             break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
 
     return code, success
 
@@ -3887,6 +4747,84 @@ def SUBINC(code: list, BITS: int):
 def SUBDEC(code: list, BITS: int):
     
     success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
     
     write1 = (
         "ADD",
@@ -3958,12 +4896,16 @@ def SUBDEC(code: list, BITS: int):
                                     newImm = str((int(originalImm, 0) + 1) & MAX) # x1 + 1
                                     answer = ["SUB", intermediateReg, originalReg, newImm]
                                     code[index + 1 + index2] = answer.copy()
+                                    if intermediateReg == originalReg:
+                                        code[index] = [""]
                                     success = True
                                     break
                                 elif state == 2:
                                     newImm = str((int(originalImm, 0) + MAX) & MAX) # x1 - 1
                                     answer = ["SUB", intermediateReg, newImm, originalReg]
                                     code[index + 1 + index2] = answer.copy()
+                                    if intermediateReg == originalReg:
+                                        code[index] = [""]
                                     success = True
                                     break
                     
@@ -3972,6 +4914,32 @@ def SUBDEC(code: list, BITS: int):
                     elif line2[0] in write1:
                         if (line2[1] == intermediateReg) or (line2[1] == originalReg):
                             break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
 
     return code, success
 
@@ -3979,6 +4947,84 @@ def SUBDEC(code: list, BITS: int):
 def INCDEC(code: list):
     
     success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
     
     write1 = (
         "ADD",
@@ -4028,21 +5074,49 @@ def INCDEC(code: list):
         if line[0] == "INC":
             intermediateReg = line[1]
             originalReg = line[2]
-            
+
             for index2, line2 in enumerate(code[index + 1: ]):
                 if line2[0] == "DEC":
                     if line2[1] == intermediateReg:
                         if line2[2] == intermediateReg:
                             answer = ["MOV", intermediateReg, originalReg]
                             code[index + 1 + index2] = answer.copy()
+                            if intermediateReg == originalReg:
+                                code[index] = [""]
                             success = True
                             break
-                
+            
                 if line2[0].startswith("."):
                     break
                 elif line2[0] in write1:
                     if (line2[1] == intermediateReg) or (line2[1] == originalReg):
                         break
+                elif intermediateReg == originalReg:
+                    if line2[0] in read2and3:
+                        if line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read2:
+                        if line2[2] == originalReg:
+                            break
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read1:
+                        if line2[1] == originalReg:
+                            break
+                    elif line2[0] in read1and2:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+        
+    code, success2 = removeEmptyLines(code)
     
     return code, success
 
@@ -4050,6 +5124,84 @@ def INCDEC(code: list):
 def SUBADD(code: list, BITS: int):
     
     success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
     
     write1 = (
         "ADD",
@@ -4122,12 +5274,16 @@ def SUBADD(code: list, BITS: int):
                                         newImm = str((int(originalImm, 0) + int(line2[3], 0)) & MAX) # x1 + x2
                                         answer = ["SUB", intermediateReg, newImm, originalReg]
                                         code[index + 1 + index2] = answer.copy()
+                                        if intermediateReg == originalReg:
+                                            code[index] = [""]
                                         success = True
                                         break
                                     elif state == 3:
                                         newImm = str((int(originalImm, 0) + (MAX - int(line2[3], 0)) + 1) & MAX) # x1 - x2
                                         answer = ["SUB", intermediateReg, originalReg, newImm]
                                         code[index + 1 + index2] = answer.copy()
+                                        if intermediateReg == originalReg:
+                                            code[index] = [""]
                                         success = True
                                         break
                             elif line2[3] == intermediateReg:
@@ -4136,12 +5292,16 @@ def SUBADD(code: list, BITS: int):
                                         newImm = str((int(originalImm, 0) + int(line2[2], 0)) & MAX) # x1 + x2
                                         answer = ["SUB", intermediateReg, newImm, originalReg]
                                         code[index + 1 + index2] = answer.copy()
+                                        if intermediateReg == originalReg:
+                                            code[index] = [""]
                                         success = True
                                         break
                                     elif state == 3:
                                         newImm = str((int(originalImm, 0) + (MAX - int(line2[2], 0)) + 1) & MAX) # x1 - x2
                                         answer = ["SUB", intermediateReg, originalReg, newImm]
                                         code[index + 1 + index2] = answer.copy()
+                                        if intermediateReg == originalReg:
+                                            code[index] = [""]
                                         success = True
                                         break
                                     
@@ -4150,6 +5310,32 @@ def SUBADD(code: list, BITS: int):
                     elif line2[0] in write1:
                         if (line2[1] == intermediateReg) or (line2[1] == originalReg):
                             break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
     
     return code, success
 
@@ -4158,6 +5344,84 @@ def INCADD(code: list, BITS: int):
     
     success = False
     
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
     write1 = (
         "ADD",
         "RSH",
@@ -4217,6 +5481,8 @@ def INCADD(code: list, BITS: int):
                                 newImm = str((1 + int(line2[3], 0)) & MAX) # 1 + x2
                                 answer = ["ADD", intermediateReg, originalReg, newImm]
                                 code[index + 1 + index2] = answer.copy()
+                                if intermediateReg == originalReg:
+                                    code[index] = [""]
                                 success = True
                                 break
                         elif line2[3] == intermediateReg:
@@ -4224,6 +5490,8 @@ def INCADD(code: list, BITS: int):
                                 newImm = str((1 + int(line2[2], 0)) & MAX) # 1 + x2
                                 answer = ["ADD", intermediateReg, originalReg, newImm]
                                 code[index + 1 + index2] = answer.copy()
+                                if intermediateReg == originalReg:
+                                    code[index] = [""]
                                 success = True
                                 break
                 
@@ -4232,6 +5500,32 @@ def INCADD(code: list, BITS: int):
                 elif line2[0] in write1:
                     if (line2[1] == intermediateReg) or (line2[1] == originalReg):
                         break
+                elif intermediateReg == originalReg:
+                    if line2[0] in read2and3:
+                        if line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read2:
+                        if line2[2] == originalReg:
+                            break
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read1:
+                        if line2[1] == originalReg:
+                            break
+                    elif line2[0] in read1and2:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+            
+    code, success2 = removeEmptyLines(code)
     
     return code, success
 
@@ -4240,6 +5534,84 @@ def DECADD(code: list, BITS: int):
     
     success = False
     
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
     write1 = (
         "ADD",
         "RSH",
@@ -4299,6 +5671,8 @@ def DECADD(code: list, BITS: int):
                                 newImm = str((MAX + int(line2[3], 0)) & MAX) # -1 + x2
                                 answer = ["ADD", intermediateReg, originalReg, newImm]
                                 code[index + 1 + index2] = answer.copy()
+                                if intermediateReg == originalReg:
+                                    code[index] = [""]
                                 success = True
                                 break
                         elif line2[3] == intermediateReg:
@@ -4306,14 +5680,42 @@ def DECADD(code: list, BITS: int):
                                 newImm = str((MAX + int(line2[2], 0)) & MAX) # -1 + x2
                                 answer = ["ADD", intermediateReg, originalReg, newImm]
                                 code[index + 1 + index2] = answer.copy()
+                                if intermediateReg == originalReg:
+                                    code[index] = [""]
                                 success = True
                                 break
-                
+            
                 if line2[0].startswith("."):
                     break
                 elif line2[0] in write1:
                     if (line2[1] == intermediateReg) or (line2[1] == originalReg):
                         break
+                elif intermediateReg == originalReg:
+                    if line2[0] in read2and3:
+                        if line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read2:
+                        if line2[2] == originalReg:
+                            break
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read1:
+                        if line2[1] == originalReg:
+                            break
+                    elif line2[0] in read1and2:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+            
+    code, success2 = removeEmptyLines(code)
     
     return code, success
 
@@ -4321,6 +5723,84 @@ def DECADD(code: list, BITS: int):
 def INCSUB(code: list, BITS: int):
     
     success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
     
     write1 = (
         "ADD",
@@ -4381,6 +5861,8 @@ def INCSUB(code: list, BITS: int):
                                 newImm = str((MAX + int(line2[3], 0)) & MAX) # -1 + x2
                                 answer = ["SUB", intermediateReg, originalReg, newImm]
                                 code[index + 1 + index2] = answer.copy()
+                                if intermediateReg == originalReg:
+                                    code[index] = [""]
                                 success = True
                                 break
                         elif line2[3] == intermediateReg:
@@ -4388,14 +5870,42 @@ def INCSUB(code: list, BITS: int):
                                 newImm = str((MAX + int(line2[2], 0)) & MAX) # -1 + x2
                                 answer = ["SUB", intermediateReg, newImm, originalReg]
                                 code[index + 1 + index2] = answer.copy()
+                                if intermediateReg == originalReg:
+                                    code[index] = [""]
                                 success = True
                                 break
-                
+            
                 if line2[0].startswith("."):
                     break
                 elif line2[0] in write1:
                     if (line2[1] == intermediateReg) or (line2[1] == originalReg):
                         break
+                elif intermediateReg == originalReg:
+                    if line2[0] in read2and3:
+                        if line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read2:
+                        if line2[2] == originalReg:
+                            break
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read1:
+                        if line2[1] == originalReg:
+                            break
+                    elif line2[0] in read1and2:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+            
+    code, success2 = removeEmptyLines(code)
     
     return code, success
 
@@ -4403,6 +5913,84 @@ def INCSUB(code: list, BITS: int):
 def DECSUB(code: list, BITS: int):
     
     success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
     
     write1 = (
         "ADD",
@@ -4463,6 +6051,8 @@ def DECSUB(code: list, BITS: int):
                                 newImm = str((1 + int(line2[3], 0)) & MAX) # 1 + x2
                                 answer = ["SUB", intermediateReg, originalReg, newImm]
                                 code[index + 1 + index2] = answer.copy()
+                                if intermediateReg == originalReg:
+                                    code[index] = [""]
                                 success = True
                                 break
                         elif line2[3] == intermediateReg:
@@ -4470,14 +6060,42 @@ def DECSUB(code: list, BITS: int):
                                 newImm = str((1 + int(line2[2], 0)) & MAX) # 1 + x2
                                 answer = ["SUB", intermediateReg, newImm, originalReg]
                                 code[index + 1 + index2] = answer.copy()
+                                if intermediateReg == originalReg:
+                                    code[index] = [""]
                                 success = True
                                 break
-                
+            
                 if line2[0].startswith("."):
                     break
                 elif line2[0] in write1:
                     if (line2[1] == intermediateReg) or (line2[1] == originalReg):
                         break
+                elif intermediateReg == originalReg:
+                    if line2[0] in read2and3:
+                        if line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read2:
+                        if line2[2] == originalReg:
+                            break
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read1:
+                        if line2[1] == originalReg:
+                            break
+                    elif line2[0] in read1and2:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+        
+    code, success2 = removeEmptyLines(code)
     
     return code, success
 
@@ -4485,6 +6103,84 @@ def DECSUB(code: list, BITS: int):
 def DECINC(code: list):
     
     success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
     
     write1 = (
         "ADD",
@@ -4534,13 +6230,15 @@ def DECINC(code: list):
         if line[0] == "DEC":
             intermediateReg = line[1]
             originalReg = line[2]
-            
+
             for index2, line2 in enumerate(code[index + 1: ]):
                 if line2[0] == "INC":
                     if line2[1] == intermediateReg:
                         if line2[2] == intermediateReg:
                             answer = ["MOV", intermediateReg, originalReg]
                             code[index + 1 + index2] = answer.copy()
+                            if intermediateReg == originalReg:
+                                code[index] = [""]
                             success = True
                             break
                 
@@ -4549,6 +6247,32 @@ def DECINC(code: list):
                 elif line2[0] in write1:
                     if (line2[1] == intermediateReg) or (line2[1] == originalReg):
                         break
+                elif intermediateReg == originalReg:
+                    if line2[0] in read2and3:
+                        if line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read2:
+                        if line2[2] == originalReg:
+                            break
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read1:
+                        if line2[1] == originalReg:
+                            break
+                    elif line2[0] in read1and2:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+            
+    code, success2 = removeEmptyLines(code)
     
     return code, success
 
@@ -4599,6 +6323,84 @@ def MLTMLT(code: list, BITS: int):
         "IN"
     )
     
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
     success = False
     
     MAX = 2**BITS - 1
@@ -4615,7 +6417,7 @@ def MLTMLT(code: list, BITS: int):
                 originalImm = line[3]
             else:
                 bad = True
-                
+            
             if not bad:
                 for index2, line2 in enumerate(code[index + 1: ]):
                     if line2[0] == "MLT":
@@ -4628,6 +6430,8 @@ def MLTMLT(code: list, BITS: int):
                                     else:
                                         answer = ["MLT", intermediateReg, originalReg, newImm]
                                     code[index + 1 + index2] = answer.copy()
+                                    if intermediateReg == originalReg:
+                                        code[index] = [""]
                                     success = True
                                     break
                             elif line2[3] == intermediateReg:
@@ -4638,6 +6442,8 @@ def MLTMLT(code: list, BITS: int):
                                     else:
                                         answer = ["MLT", intermediateReg, originalReg, newImm]
                                     code[index + 1 + index2] = answer.copy()
+                                    if intermediateReg == originalReg:
+                                        code[index] = [""]
                                     success = True
                                     break
                     
@@ -4646,6 +6452,32 @@ def MLTMLT(code: list, BITS: int):
                     elif line2[0] in write1:
                         if (line2[1] == intermediateReg) or (line2[1] == originalReg):
                             break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
                 
     return code, success
 
