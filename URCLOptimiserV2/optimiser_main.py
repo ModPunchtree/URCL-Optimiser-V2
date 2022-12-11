@@ -126,7 +126,92 @@ def optimiseURCL(code):
         code, success = duplicateLOD(code)
         overallSuccess |= success
         optimisationCount += int(success)
-
+        
+        code, success = propagateMOV(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        ## Pair Optimisations
+        code, success = SETBranch(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = LODSTR(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = STRLOD(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = ADDADD(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = SUBSUB(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = INCINC(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = DECDEC(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = ADDSUB(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = ADDINC(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = ADDDEC(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = SUBINC(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = SUBDEC(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = INCDEC(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = SUBADD(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = INCADD(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = DECADD(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = INCSUB(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = DECSUB(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = DECINC(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = MLTMLT(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
     headers = [
         ["BITS", str(BITS)],
         ["MINREG", str(MINREG)],

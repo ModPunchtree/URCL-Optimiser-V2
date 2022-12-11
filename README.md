@@ -705,6 +705,27 @@ ADD R2 R1 5
 
 #
 
+### Propagate MOV:
+
+Propagate MOV instruction values where the source register has not yet been overwritten.
+
+This rule may:
+- Not delete any instructions
+- Replace operands within instructions
+
+Example:
+```
+MOV R2 R4
+ADD R1 R2 R3
+```
+Optimises to:
+```
+MOV R2 R4
+ADD R1 R4 R3
+```
+
+#
+
 #
 
 ## Single Instruction Optimisations
@@ -845,10 +866,461 @@ IMM R1 5
 
 Optimisations that are applied to pairs of sequential instructions.
 
+A lot of these rules aim to decouple chains of instructions that operate on the same register. This itself does not make the code shorter or faster, but other optimisation rules may be able to take advantage of it.
+
+#
+
+### SETBranch:
+
+Optimises a SET instruction followed by a conditional branch instruction based solely on the output of the SET instruction.
+
+The code between the SET and branch must not contain labels or instructions that read from or write to the register SET writes to.
+
+The code between must occur before the branch instruction after applying this optimisation.
+
+Example:
+```
+SETGE R1 R2 R3
+IMM R4 5
+BNZ .label R1
+```
+Optimises to:
+```
+SETGE R1 R2 R3
+IMM R4 5
+BGE .label R2 R3
+```
+
 #
 
 ### LODSTR:
 
+Optimises LOD followed by a STR instruction where the memory location is the same and the register is the same.
+
+The code between must not contain any labels or any instructions that write to the shared register.
+
+If the shared memory location is a register, the instructions between must not write to that register.
+
+Example:
+```
+LOD R1 M0
+IMM R2 5
+STR M0 R1
+```
+Optimises to:
+```
+LOD R1 M0
+IMM R2 5
+```
+
+#
+
+### STRLOD:
+
+Optimises STR followed by a LOD instruction where the memory location is the same and the register is the same.
+
+The code between must not contain any labels or any instructions that write to the shared memory location.
+
+If the shared memory location is a register, the instructions between must not write to that register.
+
+Example:
+```
+STR M0 R1
+IMM R2 5
+LOD R1 M0
+```
+Optimises to:
+```
+STR M0 R1
+IMM R2 5
+```
+
+#
+
+### ADDADD:
+
+Optimises ADD followed by an ADD instruction where the register written to by the first ADD is read and written to by the second one.
+
+The first and second ADD instructions must both contain immediate values (specifically raw numbers, not labels or heap locations).
+
+The code between must not contain any labels, or any instructions that write to the register written to by the first ADD, or instuctions that write to the register read by the first ADD.
+
+Example:
+```
+ADD R1 R2 100
+MOV R3 R1
+ADD R1 R1 200
+```
+Optimises to:
+```
+ADD R1 R2 100
+MOV R3 R1
+ADD R1 R2 300
+```
+
+#
+
+### SUBSUB:
+
+Optimises SUB followed by a SUB instruction where both instructions write to the same register and they both contain one immediate value (specifically raw numbers, not labels or heap locations).
+
+The registers read and written to by the first SUB must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+SUB R1 R2 100
+MOV R3 R1
+SUB R1 R1 200
+```
+Optimises to:
+```
+SUB R1 R2 100
+MOV R3 R1
+SUB R1 R2 300
+```
+
+#
+
+### INCINC:
+
+Optimises INC followed by a INC instruction where both instructions write to the same register.
+
+The registers read and written to by the first INC must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+INC R1 R2
+MOV R3 R1
+INC R1 R1
+```
+Optimises to:
+```
+INC R1 R2
+MOV R3 R1
+ADD R1 R2 2
+```
+
+#
+
+### DECDEC:
+
+Optimises DEC followed by a DEC instruction where both instructions write to the same register.
+
+The registers read and written to by the first DEC must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+DEC R1 R2
+MOV R3 R1
+DEC R1 R1
+```
+Optimises to:
+```
+DEC R1 R2
+MOV R3 R1
+SUB R1 R2 2
+```
+
+#
+
+### ADDSUB:
+
+Optimises ADD followed by a SUB instruction where both instructions write to the same register and they both contain one immediate value (specifically raw numbers, not labels or heap locations). 
+
+The registers read and written to by the first ADD must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+ADD R1 R2 5
+MOV R3 R1
+SUB R1 10 R1
+```
+Optimises to:
+```
+ADD R1 R2 5
+MOV R3 R1
+SUB R1 5 R2
+```
+
+#
+
+### ADDINC:
+
+Optimises ADD followed by a INC instruction where both instructions write to the same register and the ADD contains one immediate value (specifically raw numbers, not labels or heap locations). 
+
+The registers read and written to by the first ADD must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+ADD R1 R2 5
+MOV R3 R1
+INC R1 R1
+```
+Optimises to:
+```
+ADD R1 R2 5
+MOV R3 R1
+ADD R1 R2 6
+```
+
+#
+
+### ADDDEC:
+
+Optimises ADD followed by a DEC instruction where both instructions write to the same register and the ADD contains one immediate value (specifically raw numbers, not labels or heap locations). 
+
+The registers read and written to by the first ADD must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+ADD R1 R2 5
+MOV R3 R1
+DEC R1 R1
+```
+Optimises to:
+```
+ADD R1 R2 5
+MOV R3 R1
+ADD R1 R2 5
+```
+
+#
+
+### SUBINC:
+
+Optimises SUB followed by a INC instruction where both instructions write to the same register and the SUB contains one immediate value (specifically raw numbers, not labels or heap locations). 
+
+The registers read and written to by the first SUB must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+SUB R1 R2 5
+MOV R3 R1
+INC R1 R1
+```
+Optimises to:
+```
+SUB R1 R2 5
+MOV R3 R1
+SUB R1 R2 4
+```
+
+### SUBDEC:
+
+Optimises SUB followed by a DEC instruction where both instructions write to the same register and the SUB contains one immediate value (specifically raw numbers, not labels or heap locations). 
+
+The registers read and written to by the first SUB must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+SUB R1 R2 5
+MOV R3 R1
+DEC R1 R1
+```
+Optimises to:
+```
+SUB R1 R2 5
+MOV R3 R1
+SUB R1 R2 6
+```
+
+#
+
+### INCDEC:
+
+Optimises INC followed by a DEC instruction where both instructions write to the same register.
+
+The registers read and written to by the first INC must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+INC R1 R2
+MOV R3 R1
+DEC R1 R1
+```
+Optimises to:
+```
+INC R1 R2
+MOV R3 R1
+MOV R1 R2
+```
+
+#
+
+### SUBADD:
+
+Optimises SUB followed by a ADD instruction where both instructions write to the same register and they both contain one immediate value (specifically raw numbers, not labels or heap locations).
+
+The registers read and written to by the first SUB must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+SUB R1 R2 300
+MOV R3 R1
+ADD R1 R1 100
+```
+Optimises to:
+```
+SUB R1 R2 300
+MOV R3 R1
+SUB R1 R2 200
+```
+
+#
+
+### INCADD:
+
+Optimises INC followed by a ADD instruction where both instructions write to the same register.
+
+The registers read and written to by the first INC must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+INC R1 R2
+MOV R3 R1
+ADD R1 R1 5
+```
+Optimises to:
+```
+INC R1 R2
+MOV R3 R1
+ADD R1 R2 6
+```
+
+#
+
+### DECADD:
+
+Optimises DEC followed by a ADD instruction where both instructions write to the same register.
+
+The registers read and written to by the first DEC must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+DEC R1 R2
+MOV R3 R1
+ADD R1 R1 5
+```
+Optimises to:
+```
+DEC R1 R2
+MOV R3 R1
+ADD R1 R2 4
+```
+
+#
+
+### INCSUB:
+
+Optimises INC followed by a SUB instruction where both instructions write to the same register.
+
+The registers read and written to by the first INC must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+INC R1 R2
+MOV R3 R1
+SUB R1 R1 5
+```
+Optimises to:
+```
+INC R1 R2
+MOV R3 R1
+SUB R1 R2 4
+```
+
+#
+
+### DECSUB:
+
+Optimises DEC followed by a SUB instruction where both instructions write to the same register.
+
+The registers read and written to by the first DEC must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+DEC R1 R2
+MOV R3 R1
+SUB R1 R1 5
+```
+Optimises to:
+```
+DEC R1 R2
+MOV R3 R1
+SUB R1 R2 6
+```
+
+#
+
+### DECINC:
+
+Optimises DEC followed by a INC instruction where both instructions write to the same register.
+
+The registers read and written to by the first DEC must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+DEC R1 R2
+MOV R3 R1
+INC R1 R1
+```
+Optimises to:
+```
+DEC R1 R2
+MOV R3 R1
+MOV R1 R2
+```
+
+#
+
+### MLTMLT:
+
+Optimises MLT followed by an MLT instruction where the register written to by the first MLT is read and written to by the second one.
+
+The first and second MLT instructions must both contain immediate values (specifically raw numbers, not labels or heap locations).
+
+The code between must not contain any labels, or any instructions that read or write to the register written to by the first MLT.
+
+Example:
+```
+MLT R1 R2 10
+MOV R3 R1
+MLT R1 R1 20
+```
+Optimises to:
+```
+MLT R1 R2 10
+MOV R3 R1
+MLT R1 R2 200
+```
+
+#
+
+### DIVDIV:
+### LSHLSH:
+### RSHRSH:
+### SRSSRS:
+### BSLBSL:
+### BSRBSR:
+### BSSBSS:
+### LSHBSL:
+### BSLLSH:
+### RSHBSR:
+### BSRRSH:
+### SRSBSS:
+### BSSSRS:
+### RSHSRS:
+### RSHBSS:
+### LSHRSH:
+### RSHLSH:
+### LSHBSR:
+### BSRLSH:
+### RSHBSL:
+### BSLRSH:
+### BSLBSR:
+### BSRBSL:
+### ANDAND:
+### XORXOR:
 #
 
 
