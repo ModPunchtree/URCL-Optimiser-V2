@@ -13,9 +13,11 @@ def optimiseURCL(code):
 
     code, success = defineMacros(code)
 
-    code, success = convertBases(code)
+    #code, success = convertBases(code)
 
     code, success = tokenise(code)
+    
+    code, success = convertBases(code)
 
     code, BITS, MINHEAP, MINSTACK, RUN, MINREG, success = fixBITS(code)
 
@@ -222,7 +224,7 @@ def optimiseURCL(code):
     
     code = headers + code
     
-    if code[-1: ] != [["HLT"]]:
+    if code[-1: ] not in ([["HLT"]], [["JMP"]], [["RET"]]):
         code.append(["HLT"])
 
     return code, optimisationCount

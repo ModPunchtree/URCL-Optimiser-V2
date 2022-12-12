@@ -1321,6 +1321,7 @@ MLT R1 R2 200
 ### BSRBSL:
 ### ANDAND:
 ### XORXOR:
+### PSHPOP (no code between):
 #
 
 

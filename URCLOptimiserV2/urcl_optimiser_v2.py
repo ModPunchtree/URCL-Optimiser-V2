@@ -83,42 +83,6 @@ def defineMacros(code: list):
             
     return code, success
 
-### Convert Bases
-def convertBases(code: list):
-    
-    success = False
-    
-    for index, line in enumerate(code):
-        while code[index].find("0b") != -1:
-            number = code[code[index].find("0b"): code[code[index].find("0b"): ].find(" ")]
-            number = str(int(number, 2))
-            code[index] = code[index][: code[index].find("0b")] + number + code[code[code[index].find("0b"): ].find(" "): ]
-            
-            success = True
-        
-        while code[index].find("0x") != -1:
-            number = code[code[index].find("0x"): code[code[index].find("0x"): ].find(" ")]
-            number = str(int(number, 2))
-            code[index] = code[index][: code[index].find("0x")] + number + code[code[code[index].find("0x"): ].find(" "): ]
-            
-            success = True
-            
-        while code[index].find("0B") != -1:
-            number = code[code[index].find("0B"): code[code[index].find("0B"): ].find(" ")]
-            number = str(int(number, 2))
-            code[index] = code[index][: code[index].find("0B")] + number + code[code[code[index].find("0B"): ].find(" "): ]
-            
-            success = True
-        
-        while code[index].find("0X") != -1:
-            number = code[code[index].find("0X"): code[code[index].find("0X"): ].find(" ")]
-            number = str(int(number, 2))
-            code[index] = code[index][: code[index].find("0X")] + number + code[code[code[index].find("0X"): ].find(" "): ]
-            
-            success = True
-
-        return code, success
-
 ### Tokenise
 def tokenise(code: list):
     
@@ -134,6 +98,21 @@ def tokenise(code: list):
     success = True
     
     return code2, success
+
+### Convert Bases 2 (the original version doesnt work)
+def convertBases(code: list):
+    
+    success = False
+    
+    for index, line in enumerate(code):
+        for index2, token in enumerate(line):
+            if token[0].isnumeric():
+                old = token
+                code[index][index2] = str(int(token, 0))
+                if code[index][index2] != token:
+                    success = True
+    
+    return code, success
 
 ### Fix BITS Header Syntax (remove headers from code and return the important values)
 def fixBITS(code: list):
@@ -581,8 +560,9 @@ def shortcutBranches(code: list):
                 line2 = code[code.index([location1]) + 1]
                 if line2[0] == "JMP":
                     location2 = line2[1]
-                    code[index][1] = location2
-                    success = True
+                    if code[index][1] != location2:
+                        code[index][1] = location2
+                        success = True
     
     return code, success
 
@@ -2141,6 +2121,9 @@ def writeBeforeRead(code: list):
                     if line2[2] == writeTarget:
                         break
                 
+                elif line2[0].startswith("."):
+                    break
+                
                 if line2[0] in write1:
                     if line2[1] == "PC":
                         break
@@ -2148,6 +2131,8 @@ def writeBeforeRead(code: list):
                     elif line2[1] == writeTarget:
                         code[index] = [""]
                         success = True
+    
+    code, success2 = removeEmptyLines(code)
     
     return code, success
 
