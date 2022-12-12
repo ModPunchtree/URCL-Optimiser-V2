@@ -1105,6 +1105,8 @@ MOV R3 R1
 SUB R1 R2 4
 ```
 
+#
+
 ### SUBDEC:
 
 Optimises SUB followed by a DEC instruction where both instructions write to the same register and the SUB contains one immediate value (specifically raw numbers, not labels or heap locations). 
@@ -1297,31 +1299,474 @@ MLT R1 R2 200
 #
 
 ### DIVDIV:
+
+Optimises DIV followed by an DIV instruction where the register written to by the first DIV is read and written to by the second one.
+
+The first and second DIV instructions must both contain immediate values (specifically raw numbers, not labels or heap locations).
+
+The code between must not contain any labels, or any instructions that read or write to the register written to by the first DIV.
+
+Example:
+```
+DIV R1 R2 10
+MOV R3 R1
+DIV R1 R1 20
+```
+Optimises to:
+```
+DIV R1 R2 10
+MOV R3 R1
+DIV R1 R2 200
+```
+
+#
+
 ### LSHLSH:
+
+Optimises LSH followed by a LSH instruction where both instructions write to the same register.
+
+The registers read and written to by the first LSH must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+LSH R1 R2
+MOV R3 R1
+LSH R1 R1
+```
+Optimises to:
+```
+LSH R1 R2
+MOV R3 R1
+BSL R1 R2 2
+```
+
+#
+
 ### RSHRSH:
+
+Optimises RSH followed by a RSH instruction where both instructions write to the same register.
+
+The registers read and written to by the first RSH must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+RSH R1 R2
+MOV R3 R1
+RSH R1 R1
+```
+Optimises to:
+```
+RSH R1 R2
+MOV R3 R1
+BSR R1 R2 2
+```
+
+#
+
 ### SRSSRS:
+
+Optimises SRS followed by a SRS instruction where both instructions write to the same register.
+
+The registers read and written to by the first SRS must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+SRS R1 R2
+MOV R3 R1
+SRS R1 R1
+```
+Optimises to:
+```
+SRS R1 R2
+MOV R3 R1
+BSS R1 R2 2
+```
+
+#
+
 ### BSLBSL:
+
+Optimises BSL followed by a BSL instruction where both instructions write to the same register and both instructions contain one immediate value (specifically raw numbers, not labels or heap locations) as their third operand. 
+
+The registers read and written to by the first BSL must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+BSL R1 R2 5
+MOV R3 R1
+BSL R1 R1 2
+```
+Optimises to:
+```
+BSL R1 R2 5
+MOV R3 R1
+BSL R1 R2 7
+```
+
+#
+
 ### BSRBSR:
+
+Optimises BSR followed by a BSR instruction where both instructions write to the same register and both instructions contain one immediate value (specifically raw numbers, not labels or heap locations) as their third operand. 
+
+The registers read and written to by the first BSR must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+BSR R1 R2 5
+MOV R3 R1
+BSR R1 R1 2
+```
+Optimises to:
+```
+BSR R1 R2 5
+MOV R3 R1
+BSR R1 R2 7
+```
+
+#
+
 ### BSSBSS:
+
+Optimises BSS followed by a BSS instruction where both instructions write to the same register and both instructions contain one immediate value (specifically raw numbers, not labels or heap locations) as their third operand. 
+
+The registers read and written to by the first BSS must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+BSS R1 R2 5
+MOV R3 R1
+BSS R1 R1 2
+```
+Optimises to:
+```
+BSS R1 R2 5
+MOV R3 R1
+BSS R1 R2 7
+```
+
+#
+
 ### LSHBSL:
+
+Optimises LSH followed by a BSL instruction where both instructions write to the same register and the BSL contains one immediate value (specifically raw numbers, not labels or heap locations) as its third operand. 
+
+The registers read and written to by the LSH must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+LSH R1 R2
+MOV R3 R1
+BSL R1 R1 2
+```
+Optimises to:
+```
+LSH R1 R2
+MOV R3 R1
+BSL R1 R2 3
+```
+
+#
+
 ### BSLLSH:
+
+Optimises BSL followed by a LSH instruction where both instructions write to the same register and the BSL contains one immediate value (specifically raw numbers, not labels or heap locations) as its third operand.
+
+The registers read and written to by the first BSL must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+BSL R1 R2 5
+MOV R3 R1
+LSH R1 R1
+```
+Optimises to:
+```
+BSL R1 R2 5
+MOV R3 R1
+BSL R1 R2 6
+```
+
+#
+
 ### RSHBSR:
+
+Optimises RSH followed by a BSR instruction where both instructions write to the same register and the BSR contains one immediate value (specifically raw numbers, not labels or heap locations) as its third operand. 
+
+The registers read and written to by the RSH must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+RSH R1 R2
+MOV R3 R1
+BSR R1 R1 2
+```
+Optimises to:
+```
+RSH R1 R2
+MOV R3 R1
+BSR R1 R2 3
+```
+
+#
+
 ### BSRRSH:
+
+Optimises BSR followed by a RSH instruction where both instructions write to the same register and the BSR contains one immediate value (specifically raw numbers, not labels or heap locations) as its third operand.
+
+The registers read and written to by the first BSR must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+BSR R1 R2 5
+MOV R3 R1
+RSH R1 R1
+```
+Optimises to:
+```
+BSR R1 R2 5
+MOV R3 R1
+BSR R1 R2 6
+```
+
+#
+
 ### SRSBSS:
+
+Optimises SRS followed by a BSS instruction where both instructions write to the same register and the BSS contains one immediate value (specifically raw numbers, not labels or heap locations) as its third operand. 
+
+The registers read and written to by the SRS must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+SRS R1 R2
+MOV R3 R1
+BSS R1 R1 2
+```
+Optimises to:
+```
+SRS R1 R2
+MOV R3 R1
+BSS R1 R2 3
+```
+
+#
+
 ### BSSSRS:
+
+Optimises BSS followed by a SRS instruction where both instructions write to the same register and the BSS contains one immediate value (specifically raw numbers, not labels or heap locations) as its third operand.
+
+The registers read and written to by the first BSS must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+BSS R1 R2 5
+MOV R3 R1
+SRS R1 R1
+```
+Optimises to:
+```
+BSS R1 R2 5
+MOV R3 R1
+BSS R1 R2 6
+```
+
+#
+
 ### RSHSRS:
+
+Optimises RSH followed by a SRS instruction where both instructions write to the same register.
+
+The registers read and written to by the first RSH must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+RSH R1 R2
+MOV R3 R1
+SRS R1 R1
+```
+Optimises to:
+```
+RSH R1 R2
+MOV R3 R1
+BSR R1 R2 2
+```
+
+#
+
 ### RSHBSS:
+
+Optimises RSH followed by a BSS instruction where both instructions write to the same register and the BSS contains one immediate value (specifically raw numbers, not labels or heap locations) as its third operand. 
+
+The registers read and written to by the RSH must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+RSH R1 R2
+MOV R3 R1
+BSS R1 R1 2
+```
+Optimises to:
+```
+RSH R1 R2
+MOV R3 R1
+BSR R1 R2 3
+```
+
+#
+
 ### LSHRSH:
+
+Optimises LSH followed by a RSH instruction where both instructions write to the same register.
+
+The registers read and written to by the first LSH must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+BITS 8
+LSH R1 R2
+MOV R3 R1
+RSH R1 R1
+```
+Optimises to:
+```
+BITS 8
+LSH R1 R2
+MOV R3 R1
+AND R1 R2 126
+```
+
+#
+
 ### RSHLSH:
-### LSHBSR:
-### BSRLSH:
-### RSHBSL:
-### BSLRSH:
-### BSLBSR:
+
+Optimises RSH followed by a LSH instruction where both instructions write to the same register.
+
+The registers read and written to by the first RSH must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+BITS 8
+RSH R1 R2
+MOV R3 R1
+LSH R1 R1
+```
+Optimises to:
+```
+BITS 8
+RSH R1 R2
+MOV R3 R1
+AND R1 R2 126
+```
+
+#
+
+### BSLBSR (equal immediates):
+
+Optimises BSL followed by a BSR instruction where both instructions write to the same register and both instructions contain the same immediate value (specifically raw numbers, not labels or heap locations) as their third operand. 
+
+The registers read and written to by the first BSL must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+BITS 8
+BSL R1 R2 2
+MOV R3 R1
+BSR R1 R1 2
+```
+Optimises to:
+```
+BITS 8
+BSL R1 R2 2
+MOV R3 R1
+AND R1 R2 63
+```
+
+#
+
 ### BSRBSL:
+
+Optimises BSR followed by a BSL instruction where both instructions write to the same register and both instructions contain the same immediate value (specifically raw numbers, not labels or heap locations) as their third operand. 
+
+The registers read and written to by the first BSR must not be written to by the code between. The code between must not contain any labels.
+
+Example:
+```
+BITS 8
+BSR R1 R2 2
+MOV R3 R1
+BSL R1 R1 2
+```
+Optimises to:
+```
+BITS 8
+BSR R1 R2 2
+MOV R3 R1
+AND R1 R2 252
+```
+
+#
+
 ### ANDAND:
+
+Optimises AND followed by an AND instruction where the register written to by the first AND is read and written to by the second one.
+
+The first and second AND instructions must both contain immediate values (specifically raw numbers, not labels or heap locations).
+
+The code between must not contain any labels, or any instructions that write to the register written to by the first AND, or instuctions that write to the register read by the first AND.
+
+Example:
+```
+AND R1 R2 12
+MOV R3 R1
+AND R1 R1 9
+```
+Optimises to:
+```
+AND R1 R2 12
+MOV R3 R1
+AND R1 R2 8
+```
+
+#
+
 ### XORXOR:
+
+Optimises XOR followed by an XOR instruction where the register written to by the first XOR is read and written to by the second one.
+
+The first and second XOR instructions must both contain immediate values (specifically raw numbers, not labels or heap locations).
+
+The code between must not contain any labels, or any instructions that write to the register written to by the first XOR, or instuctions that write to the register read by the first XOR.
+
+Example:
+```
+XOR R1 R2 12
+MOV R3 R1
+XOR R1 R1 9
+```
+Optimises to:
+```
+XOR R1 R2 12
+MOV R3 R1
+XOR R1 R2 5
+```
+
+#
+
 ### PSHPOP (no code between):
+
+Optimises PSH followed by a POP instruction where there is no code between the PSH and POP.
+
+Example:
+```
+PSH R1
+POP R2
+```
+Optimises to:
+```
+MOV R2 R1
+```
+
 #
 
 

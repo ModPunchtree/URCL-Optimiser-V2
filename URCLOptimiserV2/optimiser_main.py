@@ -214,6 +214,94 @@ def optimiseURCL(code):
         overallSuccess |= success
         optimisationCount += int(success)
         
+        code, success = DIVDIV(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = LSHLSH(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = RSHRSH(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = SRSSRS(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = BSLBSL(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = BSRBSR(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = BSSBSS(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = LSHBSL(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = BSLLSH(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = RSHBSR(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = BSRRSH(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = SRSBSS(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = BSSSRS(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = RSHSRS(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = RSHBSS(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = LSHRSH(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = RSHLSH(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = BSLBSR(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = BSRBSL(code, BITS)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = ANDAND(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = XORXOR(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = PSHPOP(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
     headers = [
         ["BITS", str(BITS)],
         ["MINREG", str(MINREG)],

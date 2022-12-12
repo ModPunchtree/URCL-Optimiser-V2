@@ -410,7 +410,7 @@ def reduceRegisters(code: list):
     
     usefulRegisters = []
     for line in code:
-        for token in line:
+        for token in line[1: ]:
             if token.startswith("R"):
                 number = int(token[1: ], 0)
                 if number not in usefulRegisters:
@@ -439,7 +439,7 @@ def calculateMINREG(code: list):
     
     MINREG = 0
     for line in code:
-        for token in line:
+        for token in line[1: ]:
             if token.startswith("R"):
                 number = int(token[1: ], 0)
                 if number > MINREG:
@@ -6466,6 +6466,3922 @@ def MLTMLT(code: list, BITS: int):
                 
     return code, success
 
+### DIVDIV
+def DIVDIV(code: list, BITS: int):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    MAX = 2**BITS - 1
+    
+    for index, line in enumerate(code):
+        if line[0] == "DIV":
+            intermediateReg = line[1]
+            bad = False
+            if line[2][0].isnumeric():
+                state = 2
+                originalReg = line[3]
+                originalImm = line[2]
+            elif line[3][0].isnumeric():
+                state = 3
+                originalReg = line[2]
+                originalImm = line[3]
+            else:
+                bad = True
+    
+            if not bad:
+                for index2, line2 in enumerate(code[index + 1: ]):
+                    if line2[0] == "DIV":
+                        if line2[1] == intermediateReg:
+                            if line2[2] == intermediateReg:
+                                if line2[3][0].isnumeric():
+                                    if state == 2:
+                                        newImm = str(int(originalImm, 0) // int(line2[3], 0)) # x1 / x2
+                                        answer = ["DIV", intermediateReg, newImm, originalReg]
+                                        code[index + 1 + index2] = answer.copy()
+                                        if intermediateReg == originalReg:
+                                            code[index] = [""]
+                                        success = True
+                                        break
+                                    elif state == 3:
+                                        newImm = str(int(originalImm, 0) * int(line2[3], 0)) # x1 * x2
+                                        if int(newImm) > MAX:
+                                            answer = ["IMM", intermediateReg, "0"]
+                                        else:
+                                            answer = ["DIV", intermediateReg, originalReg, newImm]
+                                        code[index + 1 + index2] = answer.copy()
+                                        if intermediateReg == originalReg:
+                                            code[index] = [""]
+                                        success = True
+                                        break
+                            elif line2[3] == intermediateReg:
+                                if line2[2][0].isnumeric():
+                                    if state == 2:
+                                        newImm = str(int(originalImm, 0) // int(line2[2], 0)) # x1 / x2
+                                        answer = ["DIV", intermediateReg, originalReg, newImm]
+                                        code[index + 1 + index2] = answer.copy()
+                                        if intermediateReg == originalReg:
+                                            code[index] = [""]
+                                        success = True
+                                        break
+                                    elif state == 3:
+                                        newImm = str(int(originalImm, 0) * int(line2[2], 0)) # x1 * x2
+                                        if int(newImm) > MAX:
+                                            answer = ["IMM", intermediateReg, "0"]
+                                        else:
+                                            answer = ["DIV", intermediateReg, newImm, originalReg]
+                                        code[index + 1 + index2] = answer.copy()
+                                        if intermediateReg == originalReg:
+                                            code[index] = [""]
+                                        success = True
+                                        break
+                                    
+                    if line2[0].startswith("."):
+                        break
+                    elif line2[0] in write1:
+                        if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                            break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
 
+### LSHLSH
+def LSHLSH(code: list):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "LSH":
+            intermediateReg = line[1]
+            originalReg = line[2]
+            
+            for index2, line2 in enumerate(code[index + 1: ]):
+                if line2[0] == "LSH":
+                    if line2[1] == intermediateReg:
+                        if line2[2] == intermediateReg:
+                            answer = ["BSL", intermediateReg, originalReg, "2"]
+                            code[index + 1 + index2] = answer.copy()
+                            if intermediateReg == originalReg:
+                                code[index] = [""]
+                            success = True
+                            break
+            
+                if line2[0].startswith("."):
+                    break
+                elif line2[0] in write1:
+                    if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                        break
+                elif intermediateReg == originalReg:
+                    if line2[0] in read2and3:
+                        if line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read2:
+                        if line2[2] == originalReg:
+                            break
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read1:
+                        if line2[1] == originalReg:
+                            break
+                    elif line2[0] in read1and2:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
 
+### RSHRSH
+def RSHRSH(code: list):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "RSH":
+            intermediateReg = line[1]
+            originalReg = line[2]
+            
+            for index2, line2 in enumerate(code[index + 1: ]):
+                if line2[0] == "RSH":
+                    if line2[1] == intermediateReg:
+                        if line2[2] == intermediateReg:
+                            answer = ["BSR", intermediateReg, originalReg, "2"]
+                            code[index + 1 + index2] = answer.copy()
+                            if intermediateReg == originalReg:
+                                code[index] = [""]
+                            success = True
+                            break
+            
+                if line2[0].startswith("."):
+                    break
+                elif line2[0] in write1:
+                    if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                        break
+                elif intermediateReg == originalReg:
+                    if line2[0] in read2and3:
+                        if line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read2:
+                        if line2[2] == originalReg:
+                            break
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read1:
+                        if line2[1] == originalReg:
+                            break
+                    elif line2[0] in read1and2:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+### SRSSRS
+def SRSSRS(code: list):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "SRS":
+            intermediateReg = line[1]
+            originalReg = line[2]
+            
+            for index2, line2 in enumerate(code[index + 1: ]):
+                if line2[0] == "SRS":
+                    if line2[1] == intermediateReg:
+                        if line2[2] == intermediateReg:
+                            answer = ["BSS", intermediateReg, originalReg, "2"]
+                            code[index + 1 + index2] = answer.copy()
+                            if intermediateReg == originalReg:
+                                code[index] = [""]
+                            success = True
+                            break
+            
+                if line2[0].startswith("."):
+                    break
+                elif line2[0] in write1:
+                    if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                        break
+                elif intermediateReg == originalReg:
+                    if line2[0] in read2and3:
+                        if line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read2:
+                        if line2[2] == originalReg:
+                            break
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read1:
+                        if line2[1] == originalReg:
+                            break
+                    elif line2[0] in read1and2:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+### BSLBSL
+def BSLBSL(code: list, BITS: int):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "BSL":
+            intermediateReg = line[1]
+            bad = False
+            if line[3][0].isnumeric():
+                originalReg = line[2]
+                originalImm = line[3]
+            else:
+                bad = True
+    
+            if not bad:
+                for index2, line2 in enumerate(code[index + 1: ]):
+                    if line2[0] == "BSL":
+                        if line2[1] == intermediateReg:
+                            if line2[2] == intermediateReg:
+                                if line2[3][0].isnumeric():
+                                    newImm = str(int(originalImm, 0) + int(line2[3], 0)) # x1 + x2
+                                    if int(newImm) >= BITS:
+                                        answer = ["IMM", intermediateReg, "0"]
+                                    else:
+                                        answer = ["BSL", intermediateReg, originalReg, newImm]
+                                    code[index + 1 + index2] = answer.copy()
+                                    if intermediateReg == originalReg:
+                                        code[index] = [""]
+                                    success = True
+                                    break
+                                    
+                    if line2[0].startswith("."):
+                        break
+                    elif line2[0] in write1:
+                        if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                            break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+### BSRBSR
+def BSRBSR(code: list, BITS: int):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "BSR":
+            intermediateReg = line[1]
+            bad = False
+            if line[3][0].isnumeric():
+                originalReg = line[2]
+                originalImm = line[3]
+            else:
+                bad = True
+    
+            if not bad:
+                for index2, line2 in enumerate(code[index + 1: ]):
+                    if line2[0] == "BSR":
+                        if line2[1] == intermediateReg:
+                            if line2[2] == intermediateReg:
+                                if line2[3][0].isnumeric():
+                                    newImm = str(int(originalImm, 0) + int(line2[3], 0)) # x1 + x2
+                                    if int(newImm) >= BITS:
+                                        answer = ["IMM", intermediateReg, "0"]
+                                    else:
+                                        answer = ["BSR", intermediateReg, originalReg, newImm]
+                                    code[index + 1 + index2] = answer.copy()
+                                    if intermediateReg == originalReg:
+                                        code[index] = [""]
+                                    success = True
+                                    break
+                                    
+                    if line2[0].startswith("."):
+                        break
+                    elif line2[0] in write1:
+                        if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                            break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+### BSSBSS
+def BSSBSS(code: list):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "BSS":
+            intermediateReg = line[1]
+            bad = False
+            if line[3][0].isnumeric():
+                originalReg = line[2]
+                originalImm = line[3]
+            else:
+                bad = True
+    
+            if not bad:
+                for index2, line2 in enumerate(code[index + 1: ]):
+                    if line2[0] == "BSS":
+                        if line2[1] == intermediateReg:
+                            if line2[2] == intermediateReg:
+                                if line2[3][0].isnumeric():
+                                    newImm = str(int(originalImm, 0) + int(line2[3], 0)) # x1 + x2
+                                    answer = ["BSS", intermediateReg, originalReg, newImm]
+                                    code[index + 1 + index2] = answer.copy()
+                                    if intermediateReg == originalReg:
+                                        code[index] = [""]
+                                    success = True
+                                    break
+                                    
+                    if line2[0].startswith("."):
+                        break
+                    elif line2[0] in write1:
+                        if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                            break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+### LSHBSL
+def LSHBSL(code: list, BITS: int):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "LSH":
+            intermediateReg = line[1]
+            originalReg = line[2]
+    
+            for index2, line2 in enumerate(code[index + 1: ]):
+                if line2[0] == "BSL":
+                    if line2[1] == intermediateReg:
+                        if line2[2] == intermediateReg:
+                            if line2[3][0].isnumeric():
+                                newImm = str(1 + int(line2[3], 0)) # 1 + x2
+                                if int(newImm) >= BITS:
+                                    answer = ["IMM", intermediateReg, "0"]
+                                else:
+                                    answer = ["BSL", intermediateReg, originalReg, newImm]
+                                code[index + 1 + index2] = answer.copy()
+                                if intermediateReg == originalReg:
+                                    code[index] = [""]
+                                success = True
+                                break
+                                
+                if line2[0].startswith("."):
+                    break
+                elif line2[0] in write1:
+                    if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                        break
+                elif intermediateReg == originalReg:
+                    if line2[0] in read2and3:
+                        if line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read2:
+                        if line2[2] == originalReg:
+                            break
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read1:
+                        if line2[1] == originalReg:
+                            break
+                    elif line2[0] in read1and2:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+### BSLLSH
+def BSLLSH(code: list, BITS: int):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "BSL":
+            intermediateReg = line[1]
+            bad = False
+            if line[3][0].isnumeric():
+                originalReg = line[2]
+                originalImm = line[3]
+            else:
+                bad = True
+    
+            if not bad:
+                for index2, line2 in enumerate(code[index + 1: ]):
+                    if line2[0] == "LSH":
+                        if line2[1] == intermediateReg:
+                            if line2[2] == intermediateReg:
+                                newImm = str(int(originalImm, 0) + 1) # x1 + 1
+                                if int(newImm) >= BITS:
+                                    answer = ["IMM", intermediateReg, "0"]
+                                else:
+                                    answer = ["BSL", intermediateReg, originalReg, newImm]
+                                code[index + 1 + index2] = answer.copy()
+                                if intermediateReg == originalReg:
+                                    code[index] = [""]
+                                success = True
+                                break
+                                    
+                    if line2[0].startswith("."):
+                        break
+                    elif line2[0] in write1:
+                        if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                            break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+### RSHBSR
+def RSHBSR(code: list, BITS: int):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "RSH":
+            intermediateReg = line[1]
+            originalReg = line[2]
+    
+            for index2, line2 in enumerate(code[index + 1: ]):
+                if line2[0] == "BSR":
+                    if line2[1] == intermediateReg:
+                        if line2[2] == intermediateReg:
+                            if line2[3][0].isnumeric():
+                                newImm = str(1 + int(line2[3], 0)) # 1 + x2
+                                if int(newImm) >= BITS:
+                                    answer = ["IMM", intermediateReg, "0"]
+                                else:
+                                    answer = ["BSR", intermediateReg, originalReg, newImm]
+                                code[index + 1 + index2] = answer.copy()
+                                if intermediateReg == originalReg:
+                                    code[index] = [""]
+                                success = True
+                                break
+                                
+                if line2[0].startswith("."):
+                    break
+                elif line2[0] in write1:
+                    if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                        break
+                elif intermediateReg == originalReg:
+                    if line2[0] in read2and3:
+                        if line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read2:
+                        if line2[2] == originalReg:
+                            break
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read1:
+                        if line2[1] == originalReg:
+                            break
+                    elif line2[0] in read1and2:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+### BSRRSH
+def BSRRSH(code: list, BITS: int):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "BSR":
+            intermediateReg = line[1]
+            bad = False
+            if line[3][0].isnumeric():
+                originalReg = line[2]
+                originalImm = line[3]
+            else:
+                bad = True
+    
+            if not bad:
+                for index2, line2 in enumerate(code[index + 1: ]):
+                    if line2[0] == "RSH":
+                        if line2[1] == intermediateReg:
+                            if line2[2] == intermediateReg:
+                                newImm = str(int(originalImm, 0) + 1) # x1 + 1
+                                if int(newImm) >= BITS:
+                                    answer = ["IMM", intermediateReg, "0"]
+                                else:
+                                    answer = ["BSR", intermediateReg, originalReg, newImm]
+                                code[index + 1 + index2] = answer.copy()
+                                if intermediateReg == originalReg:
+                                    code[index] = [""]
+                                success = True
+                                break
+                                    
+                    if line2[0].startswith("."):
+                        break
+                    elif line2[0] in write1:
+                        if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                            break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+### SRSBSS
+def SRSBSS(code: list, BITS: int):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "SRS":
+            intermediateReg = line[1]
+            originalReg = line[2]
+    
+            for index2, line2 in enumerate(code[index + 1: ]):
+                if line2[0] == "BSS":
+                    if line2[1] == intermediateReg:
+                        if line2[2] == intermediateReg:
+                            if line2[3][0].isnumeric():
+                                newImm = str(1 + int(line2[3], 0)) # 1 + x2
+                                answer = ["BSS", intermediateReg, originalReg, newImm]
+                                code[index + 1 + index2] = answer.copy()
+                                if intermediateReg == originalReg:
+                                    code[index] = [""]
+                                success = True
+                                break
+                                
+                if line2[0].startswith("."):
+                    break
+                elif line2[0] in write1:
+                    if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                        break
+                elif intermediateReg == originalReg:
+                    if line2[0] in read2and3:
+                        if line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read2:
+                        if line2[2] == originalReg:
+                            break
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read1:
+                        if line2[1] == originalReg:
+                            break
+                    elif line2[0] in read1and2:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+### BSSSRS
+def BSSSRS(code: list, BITS: int):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "BSS":
+            intermediateReg = line[1]
+            bad = False
+            if line[3][0].isnumeric():
+                originalReg = line[2]
+                originalImm = line[3]
+            else:
+                bad = True
+    
+            if not bad:
+                for index2, line2 in enumerate(code[index + 1: ]):
+                    if line2[0] == "SRS":
+                        if line2[1] == intermediateReg:
+                            if line2[2] == intermediateReg:
+                                newImm = str(int(originalImm, 0) + 1) # x1 + 1
+                                answer = ["BSS", intermediateReg, originalReg, newImm]
+                                code[index + 1 + index2] = answer.copy()
+                                if intermediateReg == originalReg:
+                                    code[index] = [""]
+                                success = True
+                                break
+                                    
+                    if line2[0].startswith("."):
+                        break
+                    elif line2[0] in write1:
+                        if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                            break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+### RSHSRS
+def RSHSRS(code: list):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "RSH":
+            intermediateReg = line[1]
+            originalReg = line[2]
+            
+            for index2, line2 in enumerate(code[index + 1: ]):
+                if line2[0] == "SRS":
+                    if line2[1] == intermediateReg:
+                        if line2[2] == intermediateReg:
+                            answer = ["BSR", intermediateReg, originalReg, "2"]
+                            code[index + 1 + index2] = answer.copy()
+                            if intermediateReg == originalReg:
+                                code[index] = [""]
+                            success = True
+                            break
+            
+                if line2[0].startswith("."):
+                    break
+                elif line2[0] in write1:
+                    if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                        break
+                elif intermediateReg == originalReg:
+                    if line2[0] in read2and3:
+                        if line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read2:
+                        if line2[2] == originalReg:
+                            break
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read1:
+                        if line2[1] == originalReg:
+                            break
+                    elif line2[0] in read1and2:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+### RSHBSS
+def RSHBSS(code: list, BITS: int):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "RSH":
+            intermediateReg = line[1]
+            originalReg = line[2]
+    
+            for index2, line2 in enumerate(code[index + 1: ]):
+                if line2[0] == "BSS":
+                    if line2[1] == intermediateReg:
+                        if line2[2] == intermediateReg:
+                            if line2[3][0].isnumeric():
+                                newImm = str(1 + int(line2[3], 0)) # 1 + x2
+                                if int(newImm) >= BITS:
+                                    answer = ["IMM", intermediateReg, "0"]
+                                else:
+                                    answer = ["BSR", intermediateReg, originalReg, newImm]
+                                code[index + 1 + index2] = answer.copy()
+                                if intermediateReg == originalReg:
+                                    code[index] = [""]
+                                success = True
+                                break
+                                
+                if line2[0].startswith("."):
+                    break
+                elif line2[0] in write1:
+                    if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                        break
+                elif intermediateReg == originalReg:
+                    if line2[0] in read2and3:
+                        if line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read2:
+                        if line2[2] == originalReg:
+                            break
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read1:
+                        if line2[1] == originalReg:
+                            break
+                    elif line2[0] in read1and2:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+### LSHRSH
+def LSHRSH(code: list, BITS: int):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "LSH":
+            intermediateReg = line[1]
+            originalReg = line[2]
+            
+            for index2, line2 in enumerate(code[index + 1: ]):
+                if line2[0] == "RSH":
+                    if line2[1] == intermediateReg:
+                        if line2[2] == intermediateReg:
+                            newImm = str(2**BITS - 1 - 2**(BITS - 1) - 1)
+                            answer = ["AND", intermediateReg, originalReg, newImm]
+                            code[index + 1 + index2] = answer.copy()
+                            if intermediateReg == originalReg:
+                                code[index] = [""]
+                            success = True
+                            break
+            
+                if line2[0].startswith("."):
+                    break
+                elif line2[0] in write1:
+                    if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                        break
+                elif intermediateReg == originalReg:
+                    if line2[0] in read2and3:
+                        if line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read2:
+                        if line2[2] == originalReg:
+                            break
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read1:
+                        if line2[1] == originalReg:
+                            break
+                    elif line2[0] in read1and2:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+### RSHLSH
+def RSHLSH(code: list, BITS: int):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "RSH":
+            intermediateReg = line[1]
+            originalReg = line[2]
+            
+            for index2, line2 in enumerate(code[index + 1: ]):
+                if line2[0] == "LSH":
+                    if line2[1] == intermediateReg:
+                        if line2[2] == intermediateReg:
+                            newImm = str(2**BITS - 1 - 2**(BITS - 1) - 1)
+                            answer = ["AND", intermediateReg, originalReg, newImm]
+                            code[index + 1 + index2] = answer.copy()
+                            if intermediateReg == originalReg:
+                                code[index] = [""]
+                            success = True
+                            break
+            
+                if line2[0].startswith("."):
+                    break
+                elif line2[0] in write1:
+                    if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                        break
+                elif intermediateReg == originalReg:
+                    if line2[0] in read2and3:
+                        if line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read2:
+                        if line2[2] == originalReg:
+                            break
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+                        elif line2[3] == originalReg:
+                            break
+                    elif line2[0] in read1:
+                        if line2[1] == originalReg:
+                            break
+                    elif line2[0] in read1and2:
+                        if line2[1] == originalReg:
+                            break
+                        elif line2[2] == originalReg:
+                            break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+### BSLBSR
+def BSLBSR(code: list, BITS: int):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "BSL":
+            intermediateReg = line[1]
+            bad = False
+            if line[3][0].isnumeric():
+                originalReg = line[2]
+                originalImm = line[3]
+            else:
+                bad = True
+    
+            if not bad:
+                for index2, line2 in enumerate(code[index + 1: ]):
+                    if line2[0] == "BSR":
+                        if line2[1] == intermediateReg:
+                            if line2[2] == intermediateReg:
+                                if line2[3][0].isnumeric():
+                                    if line2[3] == originalImm:
+                                        
+                                        newImm = str(((2**BITS) >> int(originalImm, 0)) - 1)
+                                        
+                                        answer = ["AND", intermediateReg, originalReg, newImm]
+                                        code[index + 1 + index2] = answer.copy()
+                                        if intermediateReg == originalReg:
+                                            code[index] = [""]
+                                        success = True
+                                        break
+                                    
+                    if line2[0].startswith("."):
+                        break
+                    elif line2[0] in write1:
+                        if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                            break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+### BSRBSL
+def BSRBSL(code: list, BITS: int):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "BSR":
+            intermediateReg = line[1]
+            bad = False
+            if line[3][0].isnumeric():
+                originalReg = line[2]
+                originalImm = line[3]
+            else:
+                bad = True
+    
+            if not bad:
+                for index2, line2 in enumerate(code[index + 1: ]):
+                    if line2[0] == "BSL":
+                        if line2[1] == intermediateReg:
+                            if line2[2] == intermediateReg:
+                                if line2[3][0].isnumeric():
+                                    if line2[3] == originalImm:
+                                        
+                                        newImm = str(2**BITS - 2**(int(originalImm, 0)))
+                                        
+                                        answer = ["AND", intermediateReg, originalReg, newImm]
+                                        code[index + 1 + index2] = answer.copy()
+                                        if intermediateReg == originalReg:
+                                            code[index] = [""]
+                                        success = True
+                                        break
+                                    
+                    if line2[0].startswith("."):
+                        break
+                    elif line2[0] in write1:
+                        if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                            break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+### ANDAND
+def ANDAND(code: list):
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    success = False
+    
+    for index, line in enumerate(code):
+        if line[0] == "AND":
+            intermediateReg = line[1]
+            bad = False
+            if line[2][0].isnumeric():
+                originalReg = line[3]
+                originalImm = line[2]
+            elif line[3][0].isnumeric():
+                originalReg = line[2]
+                originalImm = line[3]
+            else:
+                bad = True
+            
+            if not bad:
+                for index2, line2 in enumerate(code[index + 1: ]):
+                    if line2[0] == "AND":
+                        if line2[1] == intermediateReg:
+                            if line2[2] == intermediateReg:
+                                if line2[3][0].isnumeric():
+                                    newImm = str(int(originalImm, 0) & int(line2[3], 0))
+                                    answer = ["AND", intermediateReg, originalReg, newImm]
+                                    code[index + 1 + index2] = answer.copy()
+                                    if intermediateReg == originalReg:
+                                        code[index] = [""]
+                                    success = True
+                                    break
+                            elif line2[3] == intermediateReg:
+                                if line2[2][0].isnumeric():
+                                    newImm = str(int(originalImm, 0) & int(line2[2], 0))
+                                    answer = ["AND", intermediateReg, originalReg, newImm]
+                                    code[index + 1 + index2] = answer.copy()
+                                    if intermediateReg == originalReg:
+                                        code[index] = [""]
+                                    success = True
+                                    break
+                    
+                    if line2[0].startswith("."):
+                        break
+                    elif line2[0] in write1:
+                        if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                            break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
+
+    return code, success
+
+### XORXOR
+def XORXOR(code: list):
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "CAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    success = False
+    
+    for index, line in enumerate(code):
+        if line[0] == "XOR":
+            intermediateReg = line[1]
+            bad = False
+            if line[2][0].isnumeric():
+                originalReg = line[3]
+                originalImm = line[2]
+            elif line[3][0].isnumeric():
+                originalReg = line[2]
+                originalImm = line[3]
+            else:
+                bad = True
+            
+            if not bad:
+                for index2, line2 in enumerate(code[index + 1: ]):
+                    if line2[0] == "XOR":
+                        if line2[1] == intermediateReg:
+                            if line2[2] == intermediateReg:
+                                if line2[3][0].isnumeric():
+                                    newImm = str(int(originalImm, 0) ^ int(line2[3], 0))
+                                    answer = ["XOR", intermediateReg, originalReg, newImm]
+                                    code[index + 1 + index2] = answer.copy()
+                                    if intermediateReg == originalReg:
+                                        code[index] = [""]
+                                    success = True
+                                    break
+                            elif line2[3] == intermediateReg:
+                                if line2[2][0].isnumeric():
+                                    newImm = str(int(originalImm, 0) ^ int(line2[2], 0))
+                                    answer = ["XOR", intermediateReg, originalReg, newImm]
+                                    code[index + 1 + index2] = answer.copy()
+                                    if intermediateReg == originalReg:
+                                        code[index] = [""]
+                                    success = True
+                                    break
+                    
+                    if line2[0].startswith("."):
+                        break
+                    elif line2[0] in write1:
+                        if (line2[1] == intermediateReg) or (line2[1] == originalReg):
+                            break
+                    elif intermediateReg == originalReg:
+                        if line2[0] in read2and3:
+                            if line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read2:
+                            if line2[2] == originalReg:
+                                break
+                        elif line2[0] in read1and2and3:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+                            elif line2[3] == originalReg:
+                                break
+                        elif line2[0] in read1:
+                            if line2[1] == originalReg:
+                                break
+                        elif line2[0] in read1and2:
+                            if line2[1] == originalReg:
+                                break
+                            elif line2[2] == originalReg:
+                                break
+            
+    code, success2 = removeEmptyLines(code)
+
+    return code, success
+
+### PSHPOP
+def PSHPOP(code: list):
+    
+    success = False
+    
+    for index, line in enumerate(code[: -1]):
+        if line[0] == "PSH":
+            if code[index + 1][0] == "POP":
+                code[index] = [""]
+                code[index + 1] = ["MOV", code[index + 1][1], line[1]]
+                success = True
+    
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
 
