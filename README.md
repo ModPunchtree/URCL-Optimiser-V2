@@ -199,6 +199,30 @@ IMM R1 255
 
 #
 
+### DW Array to Single:
+
+Converts arrays of DW values into single DW values. This is so that relative values are calculated correctly across DW arrays.
+
+This rule may:
+- Replace operands within instructions
+- Add DW values
+
+Example:
+```
+DW [ "Hello" 0 ]
+```
+Optimises to:
+```
+DW 'H'
+DW 'e'
+DW 'l'
+DW 'l'
+DW 'o'
+DW 0
+```
+
+#
+
 ### Relatives to Labels:
 
 Converts all relative values into unique labels.
@@ -722,6 +746,28 @@ Optimises to:
 ```
 MOV R2 R4
 ADD R1 R4 R3
+```
+
+#
+
+### Fix MOV and IMM:
+
+Switches a MOV to an IMM or vice-versa depending on if the second operand is a register or immediate.
+
+This rule may:
+- Not delete any instructions
+- Not change any operands within instructions
+- Change the type of instructions
+
+Example:
+```
+MOV R2 5
+IMM R1 R2
+```
+Optimises to:
+```
+IMM R2 5
+MOV R1 R2
 ```
 
 #

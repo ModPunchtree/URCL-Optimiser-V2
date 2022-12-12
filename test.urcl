@@ -1,3 +1,12 @@
-PSH R2
-POP R1
-OUT %NUMB R1
+mov r1 .str0
+.loop
+lod r2 r1
+brz .end r2
+out %text r2
+inc r1 r1
+JMP .loop
+.end
+hlt
+
+.str0
+dw ["Hello urcl-rs!" 0]

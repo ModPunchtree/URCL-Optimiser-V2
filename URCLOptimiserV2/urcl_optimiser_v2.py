@@ -90,9 +90,35 @@ def tokenise(code: list):
     for line in code:
         raw = line.split(" ")
         new = []
+        extendSingle = False
+        extendDouble = False
         for token in raw:
-            if token:
+            if token.startswith('"'):
+                bigToken = token
+                extendDouble = True
+            elif token.startswith("'"):
+                bigToken = token
+                extendSingle = True
+                
+            if token.endswith('"') and extendDouble:
+                extendDouble = False
+                if bigToken != token:
+                    bigToken += " " + token
+                new.append(bigToken)
+                
+            elif token.endswith("'") and extendSingle:
+                extendSingle = False
+                if bigToken != token:
+                    bigToken += " " + token
+                new.append(bigToken)
+                
+            elif extendSingle or extendDouble:
+                if bigToken != token:
+                    bigToken += " " + token
+                
+            elif token:
                 new.append(token)
+                
         code2.append(new)
 
     success = True
@@ -236,6 +262,28 @@ def convertDefinedImmediates(code: list, BITS: int, MINHEAP: str, MINSTACK: str)
             code[index][line.index("@LHALF")] = str(a)
             success = True
 
+    return code, success
+
+### DW Array to Single
+def DWArraytoSingle(code: list):
+    
+    success = False
+    
+    for index, line in enumerate(code):
+        if line[0].upper() == "DW":
+            if line[1] == "[":
+                tokens = line[2: -1]
+                result = []
+                for token in tokens:
+                    if token.startswith(("'", '"')):
+                        for char in token[1: -1]:
+                            result.append(["DW", f"'{char}'"])
+                    else:
+                        result.append(["DW", token])
+                code = code[: index] + result + code[index + 1: ]
+                success = True
+                return DWArraytoSingle(code)[0], success
+    
     return code, success
 
 ### Relatives to Labels
@@ -765,6 +813,7 @@ def fullImmediateFolding(code: list, BITS: int):
     
     imm2Only = (
         "RSH",
+        "MOV",
         "LSH",
         "INC",
         "DEC",
@@ -1022,6 +1071,9 @@ def fullImmediateFolding(code: list, BITS: int):
                     case "RSH":
                         number = imm2 >> 1
                         answer = ["IMM", line[1], str(number)]
+                    
+                    case "MOV":
+                        answer = ["IMM", line[1], str(imm2)]
                     
                     case "LSH":
                         number = (imm2 << 1) & MAX
@@ -2410,7 +2462,7 @@ def pointlessWrites(code: list, MINREG: int):
     return code, success
 
 ### Duplicate Loads
-def duplicateLOD(code):
+def duplicateLOD(code: list):
     
     write1MinusLOD = (
         "ADD",
@@ -2477,7 +2529,7 @@ def duplicateLOD(code):
     return code, success
 
 ### Propagate MOV
-def propagateMOV(code):
+def propagateMOV(code: list):
     
     success = False
     
@@ -2646,6 +2698,23 @@ def propagateMOV(code):
                 elif line2[0] in write1:
                     if (line2[1] == sourceReg) or (line2[1] == targetReg):
                         break
+    
+    return code, success
+
+### Fix MOV and IMM
+def fixMOVIMM(code: list):
+    
+    success = False
+    
+    for index, line in enumerate(code):
+        if line[0] == "MOV":
+            if (line[2].startswith(".")) or (line[2][0].isnumeric()):
+                code[index][0] = "IMM"
+                success = True
+        elif line[0] == "IMM":
+            if line[2].startswith("R"):
+                code[index][0] = "MOV"
+                success = True
     
     return code, success
 

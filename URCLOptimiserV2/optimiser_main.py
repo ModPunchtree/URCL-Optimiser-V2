@@ -25,6 +25,8 @@ def optimiseURCL(code):
 
     code, success = convertDefinedImmediates(code, BITS, MINHEAP, MINSTACK)
 
+    code, success = DWArraytoSingle(code)
+
     code, uniqueNum, success = relativesToLabels(code, uniqueNum)
 
     code, success = standardiseSymbols(code)
@@ -130,6 +132,10 @@ def optimiseURCL(code):
         optimisationCount += int(success)
         
         code, success = propagateMOV(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        code, success = fixMOVIMM(code)
         overallSuccess |= success
         optimisationCount += int(success)
         
