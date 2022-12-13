@@ -1534,10 +1534,12 @@ def partialImmediateFolding(code: list, BITS: int):
                 
                 case "SBLE":
                     if type(imm2) == int:
-                        if (imm2 ^ MSB == 0) or (imm3 ^ MSB == MAX):
+                        if imm2 ^ MSB == 0:
                             answer = ["JMP", line[1]]
                     elif type(imm3) == int:
-                        if imm3 ^ MSB == 0:
+                        if imm3 ^ MSB == MAX:
+                            answer = ["JMP", line[1]]
+                        elif imm3 ^ MSB == 0:
                             answer = ["BRE", line[1], line[2], str(MSB)]
                         
                 case "SBGE":
@@ -1570,12 +1572,12 @@ def partialImmediateFolding(code: list, BITS: int):
                 
                 case "SSETLE":
                     if type(imm2) == int:
-                        if imm3 ^ MSB == MAX:
+                        if imm2 ^ MSB == MAX:
                             answer = ["IMM", line[1], str(MAX)]
-                        elif imm3 ^ MSB == 0:
-                            answer = ["SETE", line[1], line[2], str(MSB)]
+                        elif imm2 ^ MSB == 0:
+                            answer = ["SETE", line[1], line[3], str(MSB)]
                     elif type(imm3) == int:
-                        if imm2 ^ MSB == 0:
+                        if imm3 ^ MSB == 0:
                             answer = ["IMM", line[1], str(MAX)]
                     
                 case "SSETGE":
