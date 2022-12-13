@@ -70,7 +70,10 @@ async def on_message(message):
         f.write(result)
         f.close()
         await message.channel.send(f"Success!\nNumber of optimisations applied: {optimisationCount}")
-        await message.channel.send(file=discord.File("output.txt"))
+        if len(result) < 500:
+            await message.channel.send(f"```\n{result}```")
+        else:
+            await message.channel.send(file=discord.File("output.txt"))
         return
 
     else:
