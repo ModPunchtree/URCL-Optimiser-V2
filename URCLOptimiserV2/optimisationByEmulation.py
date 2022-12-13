@@ -1,7 +1,7 @@
 
 from copy import deepcopy
 
-def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTotal: int, cycleLimit: int = 1000):
+def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTotal: int, cycleLimit: int = 500):
 
     # no labels that point to DW values
     # no instructions that affect the stack pointer

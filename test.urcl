@@ -1,39 +1,6 @@
-
-// collatz (can be optimised by emulation)
-
-@DEFINE collatz R1
-@DEFINE count R2
-
-IMM collatz 9   // collatz value
-IMM count 0     // number of steps to reach 1
+IMM R1 0
 .loop
-    BRE .end collatz 1
-    BOD .x3plus1 collatz
-    .div2
-    DIV collatz collatz 2
-    INC count count
-    JMP .loop
-    .x3plus1
-    MLT collatz collatz 3
-    INC collatz collatz
-    INC count count
-    JMP .loop
-.end
-OUT %NUMB R2
-
-//////////////////////////////////////////////////
-
-// hello world (cannot be optimised by emulation)
-
-mov r1 .str0
-.loop
-lod r2 r1
-brz .end r2
-out %text r2
-inc r1 r1
-JMP .loop
-.end
-hlt
-
-.str0
-dw ["Hello World!" 0]
+OUT %NUMB R1
+INC R1 R1
+BRL .loop R1 100
+HLT
