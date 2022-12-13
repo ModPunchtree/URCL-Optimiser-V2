@@ -15,6 +15,9 @@ def optimiseURCL(code):
 
     code, success = tokenise(code)
     
+    # append HLT to prevent floating labels at end of input
+    code.append(["HLT"])
+    
     code, success = convertBases(code)
 
     code, BITS, MINHEAP, MINSTACK, RUN, MINREG, success = fixBITS(code)
@@ -304,6 +307,11 @@ def optimiseURCL(code):
         optimisationCount += int(success)
         
         code, success = PSHPOP(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
+        ## Optimisation By Emulation
+        code, success = OBE(code, BITS, MINREG, MINHEAP)
         overallSuccess |= success
         optimisationCount += int(success)
         

@@ -1,4 +1,6 @@
 
+from URCLOptimiserV2.optimisationByEmulation import optimisationByEmulation
+
 ########################################################################################################
 
 ## Code Cleaning
@@ -2119,6 +2121,7 @@ def writeBeforeRead(code: list):
     )
     
     branches = (
+        "BGE",
         "JMP",
         "BRL",
         "BRG",
@@ -2134,6 +2137,8 @@ def writeBeforeRead(code: list):
         "CAL",
         "RET",
         "HLT",
+        "BRC",
+        "BNC",
         "SBRL",
         "SBRG",
         "SBLE",
@@ -2718,6 +2723,95 @@ def fixMOVIMM(code: list):
                 code[index][0] = "MOV"
                 success = True
     
+    return code, success
+
+def OBE(code: list, BITS: int, MINREG: int, MINHEAP: int):
+
+    # search code for codeblocks
+    # a codeblock must:
+        # no labels that point to DW values
+        # no instructions that affect the stack pointer
+        # no labels that point to code outside of the code block
+        # no branches that go to a location outside of the code block
+        # no instructions that write or read from PC
+        # no instructions that read from a register or heap location that was not initialised by the code block
+        # M prepended heap locations can be used to point to the heap but must never be used outside of:
+            # the first operand of STR
+            # the second operand of LOD
+            # the second or third operands of LLOD
+            # the first or second operand of LSTR
+            # the first or second operand of CPY
+        # Memory locations must not be specified by raw number or labels in STR, LOD, LLOD, LSTR, CPY
+    
+    success = False
+    
+    # try full code
+    try:
+        code = optimisationByEmulation(code, BITS, MINREG, MINHEAP)
+        success = True
+        return code, success
+    except Exception as x:
+        pass
+    
+    # try snippets of code
+    for loop in range(len(code) - 1):
+        snippetLength = len(code) - 1 - loop
+        
+        if snippetLength != 1:
+            for index in range(len(code[: -(snippetLength - 1)])):
+                bad = False
+                if index > 0:
+                    if code[index - 1][0].startswith("."):
+                        bad = True
+                if code[index + snippetLength - 1][0].startswith("."):
+                    bad = True
+                if not bad:
+                    codeBlock = code[index: index + snippetLength]
+                    exterior = code[: index] + code[index + snippetLength: ]
+
+                    # check for shared labels
+                    bad = False
+                    
+                    codeBlockDefinedLabels = []
+                    codeBlockUsedLabels = []
+                    for line2 in codeBlock:
+                        if line2[0].startswith("."):
+                            codeBlockDefinedLabels.append(line2[0])
+                        else:
+                            for token in line2[1: ]:
+                                if token.startswith("."):
+                                    codeBlockUsedLabels.append(token)
+                
+                    for label in codeBlockUsedLabels:
+                        if label not in codeBlockDefinedLabels:
+                            bad = True
+                            break
+                        
+                    exteriorDefinedLabels = []
+                    exteriorUsedLabels = []
+                    for line2 in exterior:
+                        if line2[0].startswith("."):
+                            exteriorDefinedLabels.append(line2[0])
+                        else:
+                            for token in line2[1: ]:
+                                if token.startswith("."):
+                                    exteriorUsedLabels.append(token)
+                
+                    for label in exteriorUsedLabels:
+                        if label not in exteriorDefinedLabels:
+                            bad = True
+                            break
+                    
+                    if not bad:
+                        # try
+                        try:
+                            result = optimisationByEmulation(codeBlock, BITS, MINREG, MINHEAP)
+                            code = code[: index] + result + code[index + snippetLength: ]
+                            success = True
+                            return code, success
+                        except Exception as x:
+                            pass
+                
     return code, success
 
 ########################################################################################################

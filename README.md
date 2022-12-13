@@ -1815,5 +1815,48 @@ MOV R2 R1
 
 #
 
+#
 
+## Optimisation By Emulation
+
+Tries to emulate sections of code within the program and if successful, it generates the minimum possible code to go from the state before the section of code to after.
+
+Example: (program that generates the fibonacci sequence)
+```
+BITS 8
+IMM R1 0
+OUT %NUMB R1
+IMM R2 1
+OUT %NUMB R2
+.loop
+    BRC .end R1 R2
+    ADD R1 R1 R2
+    OUT %NUMB R1
+    BRC .end R1 R2
+    ADD R2 R1 R2
+    OUT %NUMB R2
+    JMP .loop
+.end
+HLT
+```
+Optimises to:
+```
+OUT %NUMB 0
+OUT %NUMB 1
+OUT %NUMB 1
+OUT %NUMB 2
+OUT %NUMB 3
+OUT %NUMB 5
+OUT %NUMB 8
+OUT %NUMB 13
+OUT %NUMB 21
+OUT %NUMB 34
+OUT %NUMB 55
+OUT %NUMB 89
+OUT %NUMB 144
+OUT %NUMB 233
+HLT
+```
+
+#
 
