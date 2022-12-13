@@ -79,6 +79,7 @@ def defineMacros(code: list):
                 code[index2] = code[index2].replace(key, definition)
             code.pop(index)
             success = True
+            return defineMacros(code)[0], success
             
         elif line.startswith("@"):
             raise Exception(f"Unrecognised Macro:\n{line}")

@@ -1,14 +1,20 @@
-IMM R1 0
-OUT %NUMB R1
-IMM R2 1
-OUT %NUMB R2
+@DEFINE collatz R1
+@DEFINE count R2
+
+IMM collatz 9   // collatz value
+IMM count 0     // number of steps to reach 1
 .loop
-    BRC .end R1 R2
-    ADD R1 R1 R2
-    OUT %NUMB R1
-    BRC .end R1 R2
-    ADD R2 R1 R2
-    OUT %NUMB R2
+    BRE .end collatz 1
+    BOD .x3plus1 collatz
+    .div2
+    DIV collatz collatz 2
+    INC count count
+    JMP .loop
+    .x3plus1
+    MLT collatz collatz 3
+    INC collatz collatz
+    INC count count
     JMP .loop
 .end
+OUT %NUMB R2
 HLT
