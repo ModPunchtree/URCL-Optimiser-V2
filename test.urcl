@@ -1,3 +1,6 @@
+
+// collatz (can be optimised by emulation)
+
 @DEFINE collatz R1
 @DEFINE count R2
 
@@ -17,4 +20,20 @@ IMM count 0     // number of steps to reach 1
     JMP .loop
 .end
 OUT %NUMB R2
-HLT
+
+//////////////////////////////////////////////////
+
+// hello world (cannot be optimised by emulation)
+
+mov r1 .str0
+.loop
+lod r2 r1
+brz .end r2
+out %text r2
+inc r1 r1
+JMP .loop
+.end
+hlt
+
+.str0
+dw ["Hello World!" 0]

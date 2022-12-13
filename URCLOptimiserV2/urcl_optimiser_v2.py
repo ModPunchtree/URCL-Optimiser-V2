@@ -2181,9 +2181,6 @@ def writeBeforeRead(code: list):
                     if line2[2] == writeTarget:
                         break
                 
-                elif line2[0].startswith("."):
-                    break
-                
                 if line2[0] in write1:
                     if line2[1] == "PC":
                         break
