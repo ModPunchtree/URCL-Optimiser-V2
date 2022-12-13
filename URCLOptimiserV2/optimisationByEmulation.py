@@ -161,7 +161,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
         "SBGE"
     )
     
-    codeBlock_ = deepcopy(codeBlock_)
+    codeBlock_ = deepcopy(codeBlock__)
 
     MAX = 2**BITS - 1
     MSB = 2**(BITS - 1)
