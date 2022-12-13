@@ -13,8 +13,6 @@ def optimiseURCL(code):
 
     code, success = defineMacros(code)
 
-    #code, success = convertBases(code)
-
     code, success = tokenise(code)
     
     code, success = convertBases(code)
@@ -65,6 +63,7 @@ def optimiseURCL(code):
     overallSuccess = True
     optimisationCount = 0
     while overallSuccess == True:
+        
         overallSuccess = False
         
         code, MINREG, success = loopingCodeCleaner(code, MINREG)
@@ -323,3 +322,13 @@ def optimiseURCL(code):
 
     return code, optimisationCount
 
+def debugPrint(code: list):
+    result = ""
+    for line in code:
+        result += " ".join(line)
+        result += "\n"
+
+    if result[-1: ] == "\n":
+        result = result[: -1]
+    
+    return result
