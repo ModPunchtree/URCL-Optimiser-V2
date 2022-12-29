@@ -3228,7 +3228,9 @@ def SETBranch(code: list):
                 elif line2[0] in write1:
                     if line2[1] == write:
                         break
-            
+    
+    success = False # needed to stop infinite loops
+    
     return code, success
 
 ### LODSTR

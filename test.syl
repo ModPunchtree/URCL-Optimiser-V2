@@ -1,2 +1,8 @@
-char a[3] = {'A', 'B', 'C'};
-out(%TEXT, a[0]);
+char a = {"Hello World!", 0};
+
+char* pointer = 0;
+
+while (a[pointer] != 0) {
+    out(%TEXT, a[pointer]);
+    pointer += 1;
+}

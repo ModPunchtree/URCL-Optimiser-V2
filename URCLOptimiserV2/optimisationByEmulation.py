@@ -337,20 +337,26 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
         
         # fetch operands (current value in the heap)
         if instruction == "LOD":
-            if line[2].startswith("M"):
-                operands[2] = str(HEAP[int(line[2][1: ], 0)])
-            elif line[2][0].isnumeric():
-                operands[2] = str(HEAP[int(line[2], 0)])
+            if operands[2].startswith("M"):
+                operands[2] = str(HEAP[int(operands[2][1: ], 0)])
+            elif operands[2][0].isnumeric():
+                operands[2] = str(HEAP[int(operands[2], 0)])
         elif instruction == "LLOD":
             cycles += 1
-            if line[2].startswith("M") and line[3][0].isnumeric():
+            if operands[2].startswith("M") and operands[3][0].isnumeric():
                 instruction = "LOD"
-                operands[2] = str(HEAP[int(line[2][1: ], 0) + int(line[3], 0)])
+                operands[2] = str(HEAP[int(operands[2][1: ], 0) + int(operands[3], 0)])
                 operands.pop(3)
-            elif line[2][0].isnumeric() and line[3][0].isnumeric():
+            elif operands[2][0].isnumeric() and operands[3][0].isnumeric():
                 instruction = "LOD"
-                operands[2] = str(HEAP[int(line[2], 0) + int(line[3], 0)])
+                operands[2] = str(HEAP[int(operands[2], 0) + int(operands[3], 0)])
                 operands.pop(3)
+            elif operands[3].startswith("M") and operands[2][0].isnumeric():
+                instruction = "LOD"
+                operands[2] = str(HEAP[int(operands[2], 0) + int(operands[3][1: ], 0)])
+                operands.pop(3)
+            else:
+                raise Exception("oppsie")
         
         # calculate instruction result
         match instruction:
@@ -399,9 +405,9 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
             case "BRG":
                 answer = int(operands[2], 0) > int(operands[3], 0)
             case "BRE":
-                answer = int(operands[2], 0) == int(operands[3], 0)
+                answer = operands[2] == operands[3]
             case "BNE":
-                answer = int(operands[2], 0) != int(operands[3], 0)
+                answer = operands[2] != operands[3]
             case "BOD":
                 answer = int(operands[2], 0) & 1 == 1
             case "BEV":
@@ -409,9 +415,15 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
             case "BLE":
                 answer = int(operands[2], 0) <= int(operands[3], 0)
             case "BRZ":
-                answer = int(operands[2], 0) == 0
+                if operands[2][0].isnumeric():
+                    answer = int(operands[2], 0) == 0
+                else:
+                    answer = False
             case "BNZ":
-                answer = int(operands[2], 0) != 0
+                if operands[2][0].isnumeric():
+                    answer = int(operands[2], 0) != 0
+                else:
+                    answer = True
             case "BRN":
                 answer = int(operands[2], 0) & MSB != 0
             case "BRP":
@@ -447,12 +459,12 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
                 else:
                     answer = int(operands[2], 0) >> int(operands[3], 0)
             case "SETE":
-                if int(operands[2], 0) == int(operands[3], 0):
+                if operands[2] == operands[3]:
                     answer = MAX
                 else:
                     answer = 0
             case "SETNE":
-                if int(operands[2], 0) != int(operands[3], 0):
+                if operands[2] != operands[3]:
                     answer = MAX
                 else:
                     answer = 0
@@ -487,7 +499,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
                 else:
                     answer = 0
             case "LSTR":
-                answer = int(operands[3], 0)
+                answer = operands[3]
             case "SDIV":
                 cycles += 3
                 op2 = int(operands[2], 0)

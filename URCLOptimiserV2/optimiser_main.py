@@ -146,9 +146,12 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1):
         optimisationCount += int(success)
         
         ## Pair Optimisations
-        code, success = SETBranch(code)
-        overallSuccess |= success
-        optimisationCount += int(success)
+        code, success = SETBranch(code) # always returns success as False
+        
+        # fix any bad code produced by SETBranch
+        code, success = fullImmediateFolding(code, BITS)
+        code, success = partialImmediateFolding(code, BITS)
+        code, success = noImmediateFolding(code, BITS)
         
         code, success = LODSTR(code)
         overallSuccess |= success

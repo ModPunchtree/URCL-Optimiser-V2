@@ -9,7 +9,7 @@ code = f.read()
 f.close()
 
 
-code, optimisationCount = optimiseURCL(code, 100000, 0)
+code, optimisationCount = optimiseURCL(code, 10000, 0)
 
 #BITS = 16
 #MINREG = 4
