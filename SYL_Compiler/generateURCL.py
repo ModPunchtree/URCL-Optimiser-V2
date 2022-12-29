@@ -1560,10 +1560,9 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 initialisedRegList[owners.index(currentFuncName)][int(outputReg[1: ], 0) - 1] = True
                 
                 # remove tokens
-                mainTokenIndex -= 2
+                mainTokenIndex -= 1
                 code.pop(mainTokenIndex)
-                code.pop(mainTokenIndex)
-                code.pop(mainTokenIndex)
+                code.pop(mainTokenIndex) # purposely leave the leftside of = value in the code
         
             # ArrAssign (array left side of =)
             elif code[mainTokenIndex - 2] == "ArrAssign":

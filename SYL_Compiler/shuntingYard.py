@@ -286,7 +286,7 @@ def shuntingYard(code: list, varNames: list, funcNames: list, arrNames: list, fu
             while True:
                 if operatorStack:
                     topPrecidence = precidence(operatorStack[-1], funcNames2)
-                    if tokenPrecidence <= topPrecidence:
+                    if (tokenPrecidence <= topPrecidence) and not((tokenPrecidence == topPrecidence) and (token == "=")):
                         outputStack.append(operatorStack.pop())
                     else:
                         break
