@@ -1992,12 +1992,14 @@ def immediatePropagation(code: list):
                     if line2[2] == key:
                         code[index + 1 + index2][2] = definition
                         success = True
-                    
-                else:
-                    if line2[0] in write1:
-                        if line2[1] == key:
-                            break
-                            
+                
+                if line2[0] in ("JMP", "HLT", "CAL", "HCAL"):
+                    break
+                
+                elif line2[0] in write1:
+                    if line2[1] == key:
+                        break
+                
     return code, success
 
 ### Write Before Read

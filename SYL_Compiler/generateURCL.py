@@ -126,9 +126,17 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
         # remove variable name
         scopes.pop(0)
         
+        # get list of scope names without scope
+        scopelessFuncs = []
+        for i in funcMapNames:
+            if i.count("___"):
+                scopelessFuncs.append(i[: i.index("___")])
+            else:
+                scopelessFuncs.append(i)
+        
         # remove non-function scopes from end of scope
         for i in range(len(scopes)):
-            if scopes[len(scopes) - 1 - i] not in funcMapNames:
+            if scopes[len(scopes) - 1 - i] not in scopelessFuncs:
                 scopes.pop()
             else:
                 break
@@ -909,7 +917,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                     regName = fetchVar(var, invalid = True)
                     
                     # HPOP regName
-                    URCL.append(["HPOP", regName])
+                    URCL.append(["HRSR", regName])
                     
                     # mark reg as initialised
                     initialisedRegList[owners.index(currentFuncName)][int(regName[1:], 0) - 1] = True
@@ -1937,10 +1945,6 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             varName = code[mainTokenIndex - 1]
             regName = fetchVar(varName)
             
-            # delete if TEMP
-            if code[mainTokenIndex - 1].startswith("__TEMP"):
-                delete(code[mainTokenIndex - 1])
-            
             # get port
             port = code[mainTokenIndex - 2]
             
@@ -1949,7 +1953,11 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             # check if initialised
             if (initialisedRegList[owners.index(currentFuncName)][int(regName[1: ], 0) - 1] == False) and (not regName[0].isnumeric()):
                 raise Exception(f"The out function cannot accept unintialised values\nUninitialised variable name: {varName}")
-                
+            
+            # delete if TEMP
+            if code[mainTokenIndex - 1].startswith("__TEMP"):
+                delete(code[mainTokenIndex - 1])
+            
             # OUT port regName
             URCL.append(["OUT", port, regName])
             

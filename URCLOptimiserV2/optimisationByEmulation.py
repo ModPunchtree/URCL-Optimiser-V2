@@ -593,7 +593,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
         elif instruction == "HPSH":
             dataStack.append(int(operands[1], 0))
         elif instruction == "HCAL":
-            dataStack.append(PC + 1)
+            callStack.append(PC + 1)
             PC = int(operands[1], 0)
             branch = True
         elif instruction == "HSAV":
