@@ -1,7 +1,9 @@
 
 from copy import deepcopy
 
-def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTotal: int, cycleLimit: int = 500):
+def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTotal: int, cycleLimit = 500, M0 = -1):
+
+    # if M0 is given, then all heap loads/stores are supported
 
     # no labels that point to DW values
     # no instructions that affect the stack pointer
@@ -81,7 +83,10 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "CAL",
+        "HCAL",
+        "HSAV"
     )
     
     read1and2 = (
@@ -114,6 +119,8 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -197,39 +204,50 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
     for index, line in enumerate(codeBlock):
         match line[0]:
             case "STR":
-                if line[2].startswith("M"):
+                if line[2].startswith("M") and (M0 == -1):
                     raise Exception("bad Mx usage")
-                if line[1][0].isnumeric():
+                if line[1][0].isnumeric() and (M0 == -1):
                     raise Exception("immediate memory locations are unsupported")
             case "LOD":
-                if line[1].startswith("M"):
+                if line[1].startswith("M") and (M0 == -1):
                     raise Exception("bad Mx usage")
-                if line[2][0].isnumeric():
+                if line[2][0].isnumeric() and (M0 == -1):
                     raise Exception("immediate memory locations are unsupported")
             case "LLOD":
-                if line[1].startswith("M"):
+                if line[1].startswith("M") and (M0 == -1):
                     raise Exception("bad Mx usage")
-                if line[2].startswith("M") and line[3].startswith("M"):
+                if line[2].startswith("M") and line[3].startswith("M") and (M0 == -1):
                     raise Exception("bad Mx usage")
-                if line[2][0].isnumeric() and line[3][0].isnumeric():
+                if line[2][0].isnumeric() and line[3][0].isnumeric() and (M0 == -1):
                     raise Exception("immediate memory locations are unsupported")
             case "LSTR":
-                if line[3].startswith("M"):
+                if line[3].startswith("M") and (M0 == -1):
                     raise Exception("bad Mx usage")
-                if line[1].startswith("M") and line[2].startswith("M"):
+                if line[1].startswith("M") and line[2].startswith("M") and (M0 == -1):
                     raise Exception("bad Mx usage")
-                if line[1][0].isnumeric() and line[2][0].isnumeric():
+                if line[1][0].isnumeric() and line[2][0].isnumeric() and (M0 == -1):
                     raise Exception("immediate memory locations are unsupported")
             case "CPY":
-                if line[1][0].isnumeric() or line[2][0].isnumeric():
+                if line[1][0].isnumeric() or line[2][0].isnumeric() and (M0 == -1):
                     raise Exception("immediate memory locations are unsupported")
             case _:
                 for token in line[1: ]:
-                    if token.startswith("M"):
+                    if token.startswith("M") and (M0 == -1):
                         raise Exception("bad Mx usage")
+
+    # if M0 is given, replace all M prepended values with immediates
+    if M0 != -1:
+        for index1, line in enumerate(codeBlock):
+            for index2, token in enumerate(line):
+                if token.startswith("M"):
+                    num = int(token[1: ], 0)
+                    codeBlock[index1][index2] = f"{num + M0}"
 
     initialState_REG = [0 for i in range(REGTotal + 1)]
     initialState_HEAP = [0 for i in range(HEAPTotal)]
+    callStack = []
+    dataStack = []
+    saveStack = []
 
     REG = initialState_REG.copy()
     HEAP = initialState_HEAP.copy()
@@ -243,6 +261,9 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
     branch = False
     cycles = 0
     while PC != len(codeBlock):
+        
+        if (len(callStack) > 32) or (len(saveStack) > 32) or (len(dataStack) > 32):
+            raise Exception("Hardware stacks overflowed")
         
         if cycles >= cycleLimit:
             raise Exception("Codeblock failed to halt")
@@ -316,10 +337,16 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
         if instruction == "LOD":
             if line[2].startwith("M"):
                 operands[2] = str(HEAP[int(line[2][1: ], 0)])
+            elif line[2][0].isnumeric():
+                operands[2] = str(HEAP[int(line[2], 0)])
         elif instruction == "LLOD":
             if line[2].startwith("M") and line[3][0].isnumeric():
                 instruction = "LOD"
                 operands[2] = str(HEAP[int(line[2][1: ], 0) + int(line[3], 0)])
+                operands.pop(3)
+            elif line[2][0].isnumeric() and line[3][0].isnumeric():
+                instruction = "LOD"
+                operands[2] = str(HEAP[int(line[2], 0) + int(line[3], 0)])
                 operands.pop(3)
         
         # calculate instruction result
@@ -509,6 +536,18 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
                 raise Exception("IN instructions cannot be determined")
             case "OUT":
                 answer = int(operands[2], 0)
+            case "HPSH":
+                answer = "HPSH"
+            case "HPOP":
+                answer = dataStack.pop()
+            case "HCAL":
+                answer = "HCAL"
+            case "HRET":
+                answer = callStack.pop()
+            case "HSAV":
+                answer = "HSAV"
+            case "HRSR":
+                answer = saveStack.pop()
             case _:
                 raise Exception(f"Unrecognised instruction: {instruction}")
 
@@ -517,8 +556,12 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
             REG[int(operands[1][1: ], 0)] = answer
             initialisedREG[int(operands[1][1: ], 0)] = True
         elif instruction == "STR":
-            HEAP[int(operands[1][1: ], 0)] = answer
-            initialisedHEAP[int(operands[1][1: ], 0)] = True
+            try:
+                HEAP[int(operands[1], 0)] = answer
+                initialisedHEAP[int(operands[1], 0)] = True
+            except:
+                HEAP[int(operands[1][1: ], 0)] = answer
+                initialisedHEAP[int(operands[1][1: ], 0)] = True
         elif instruction == "LSTR":
             if operands[1].startswith("M"):
                 HEAP[int(operands[1][1: ], 0) + int(operands[2], 0)] = answer
@@ -527,10 +570,15 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
                 HEAP[int(operands[1], 0) + int(operands[2][1: ], 0)] = answer
                 initialisedHEAP[int(operands[1], 0) + int(operands[2][1: ], 0)] = True
             else:
-                raise Exception("LSTR missing M prefixed value")
+                HEAP[int(operands[1], 0) + int(operands[2], 0)] = answer
+                initialisedHEAP[int(operands[1], 0) + int(operands[2], 0)] = True
         elif instruction == "CPY":
-            HEAP[int(operands[1][1: ], 0)] = answer
-            initialisedHEAP[int(operands[1][1: ], 0)] = True
+            try:
+                HEAP[int(operands[1][1: ], 0)] = answer
+                initialisedHEAP[int(operands[1][1: ], 0)] = True
+            except:
+                HEAP[int(operands[1], 0)] = answer
+                initialisedHEAP[int(operands[1], 0)] = True
         elif instruction in branches:
             if answer:
                 PC = int(operands[1], 0)
@@ -540,6 +588,17 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
         elif instruction == "HLT":
             appendHLT = True
             break
+        elif instruction == "HPSH":
+            dataStack.append(int(operands[1], 0))
+        elif instruction == "HCAL":
+            dataStack.append(PC + 1)
+            PC = int(operands[1], 0)
+            branch = True
+        elif instruction == "HSAV":
+            saveStack.append(int(operands[1], 0))
+        elif instruction == "HRET":
+            PC = answer
+            branch = True
         else:
             raise Exception(f"Unhandled writeback instruction: {instruction}")
 
@@ -550,6 +609,10 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
 
         REG[0] = 0 # make sure R0 always equals 0
 
+    # leftover callstack values
+    if callStack:
+        raise Exception("Callstack cannot have values leftover")
+
     # generate result
     for index in range(len(REG)):
         if initialisedREG[index]:
@@ -557,6 +620,12 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
     for index in range(len(HEAP)):
         if initialisedHEAP[index]:
             resultInstructions.append(["STR", f"M{index}", str(HEAP[index])])
+    for index in range(len(dataStack)):
+        dataStack[index]
+        resultInstructions.append(["HPSH", str(dataStack[index])])
+    for index in range(len(saveStack)):
+        saveStack[index]
+        resultInstructions.append(["HSAV", str(saveStack[index])])
 
     if appendHLT:
         resultInstructions.append(["HLT"])

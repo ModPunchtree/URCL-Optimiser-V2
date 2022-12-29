@@ -1,7 +1,7 @@
 
 from URCLOptimiserV2.urcl_optimiser_v2 import *
 
-def optimiseURCL(code):
+def optimiseURCL(code, maxCycles = 500, M0 = -1):
     uniqueNum = 0
 
     # initial code cleanup
@@ -63,6 +63,10 @@ def optimiseURCL(code):
         
         return code, MINREG, overallSuccess
 
+    # append HLT if it doesn't exist
+    if code[-1: ] not in ([["HLT"]], [["JMP"]], [["RET"]]):
+        code.append(["HLT"])
+
     overallSuccess = True
     optimisationCount = 0
     while overallSuccess == True:
@@ -113,9 +117,9 @@ def optimiseURCL(code):
         overallSuccess |= success
         optimisationCount += int(success)
         
-        code, success = detectOUT(code)
-        overallSuccess |= success
-        optimisationCount += int(success)
+        #code, success = detectOUT(code)
+        #overallSuccess |= success
+        #optimisationCount += int(success)
         
         code, success = inlineBranches(code)
         overallSuccess |= success
@@ -310,8 +314,13 @@ def optimiseURCL(code):
         overallSuccess |= success
         optimisationCount += int(success)
         
+        # aggressive inliner
+        code, success = inliner(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
         ## Optimisation By Emulation
-        code, success = OBE(code, BITS, MINREG, MINHEAP)
+        code, success = OBE(code, BITS, MINREG, MINHEAP, maxCycles, M0)
         overallSuccess |= success
         optimisationCount += int(success)
         

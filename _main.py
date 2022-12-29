@@ -2,12 +2,14 @@
 from URCLOptimiserV2.optimiser_main import optimiseURCL
 from URCLOptimiserV2.optimisationByEmulation import optimisationByEmulation
 
+
+
 f = open("test.urcl", "r")
 code = f.read()
 f.close()
 
 
-code, optimisationCount = optimiseURCL(code)
+code, optimisationCount = optimiseURCL(code, 1000, 0)
 
 #BITS = 16
 #MINREG = 4

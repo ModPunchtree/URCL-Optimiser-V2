@@ -441,7 +441,7 @@ def removeUnreachableCode(code: list):
     success = False
     
     for index1, line1 in enumerate(code):
-        if line1[0] in ("RET", "HLT", "JMP"):
+        if line1[0] in ("RET", "HRET", "HLT", "JMP"):
             pointer1 = index1 + 1
             if pointer1 < len(code):
                 while pointer1 < len(code):
@@ -594,6 +594,7 @@ def shortcutBranches(code: list):
         "BRN",
         "BRP",
         "CAL",
+        "HCAL",
         "BRC",
         "BNC",
         "SBRL",
@@ -685,18 +686,18 @@ def JMP2Subroutine(code: list):
             location1 = line[1]
             if location1.startswith("."):
                 line2 = code[code.index([location1]) + 1]
-                if line2[0] == "CAL":
+                if line2[0] in ("CAL", "HCAL"):
                     code[index] = code[code.index([location1])].copy()
                     success = True
-                elif line2[0] == "RET":
+                elif line2[0] == ("RET", "HRET"):
                     code[index] = code[code.index([location1])].copy()
                     success = True
     
-        elif line[0] == "CAL":
+        elif line[0] in ("CAL", "HCAL"):
             location1 = line[1]
             if location1.startswith("."):
                 line2 = code[code.index([location1]) + 1]
-                if line2[0] == "RET":
+                if line2[0] in ("RET", "HRET"):
                     code[index] = [""]
                 elif line2[0] == "JMP":
                     location2 = line2[1]
@@ -1875,7 +1876,10 @@ def immediatePropagation(code: list):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -1908,6 +1912,8 @@ def immediatePropagation(code: list):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -2063,7 +2069,10 @@ def writeBeforeRead(code: list):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -2096,6 +2105,8 @@ def writeBeforeRead(code: list):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -2136,7 +2147,9 @@ def writeBeforeRead(code: list):
         "BRN",
         "BRP",
         "CAL",
+        "HCAL"
         "RET",
+        "HRET",
         "HLT",
         "BRC",
         "BNC",
@@ -2220,11 +2233,17 @@ def inlineBranches(code: list):
                 if code[pointer2][0].startswith("."):
                     bad = True
                     break
-                elif code[pointer2][0] in ("JMP", "HLT", "RET"):
+                elif code[pointer2][0] in ("JMP", "HLT", "RET", "HRET"):
                     pointer2 += 1
                     break
                 else:
                     pointer2 += 1
+            
+            if pointer1 > 0:
+                if code[pointer1 - 1][0] not in ("JMP", "HLT", "RET", "HRET"):
+                    bad = True
+            else:
+                bad = True
             
             if not bad:
                 codeBlock = code[pointer1: pointer2]
@@ -2383,7 +2402,10 @@ def pointlessWrites(code: list, MINREG: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -2416,6 +2438,8 @@ def pointlessWrites(code: list, MINREG: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -2487,6 +2511,8 @@ def duplicateLOD(code: list):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -2602,7 +2628,10 @@ def propagateMOV(code: list):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -2635,6 +2664,8 @@ def propagateMOV(code: list):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -2723,7 +2754,8 @@ def fixMOVIMM(code: list):
     
     return code, success
 
-def OBE(code: list, BITS: int, MINREG: int, MINHEAP: int):
+## Optimsation By Emulation
+def OBE(code: list, BITS: int, MINREG: int, MINHEAP: int, maxCycles = 500, M0 = -1):
 
     # search code for codeblocks
     # a codeblock must:
@@ -2745,7 +2777,7 @@ def OBE(code: list, BITS: int, MINREG: int, MINHEAP: int):
     
     # try full code
     try:
-        code = optimisationByEmulation(code, BITS, MINREG, MINHEAP)
+        code = optimisationByEmulation(code, BITS, MINREG, MINHEAP, maxCycles, M0)
         success = True
         return code, success
     except Exception as x:
@@ -2803,7 +2835,7 @@ def OBE(code: list, BITS: int, MINREG: int, MINHEAP: int):
                     if not bad:
                         # try
                         try:
-                            result = optimisationByEmulation(codeBlock, BITS, MINREG, MINHEAP)
+                            result = optimisationByEmulation(codeBlock, BITS, MINREG, MINHEAP, maxCycles, M0)
                             code = code[: index] + result + code[index + snippetLength: ]
                             success = True
                             return code, success
@@ -2902,7 +2934,10 @@ def SETBranch(code: list):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -2935,6 +2970,8 @@ def SETBranch(code: list):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -3214,6 +3251,8 @@ def LODSTR(code: list):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -3287,6 +3326,8 @@ def STRLOD(code: list):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -3409,7 +3450,10 @@ def ADDADD(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -3442,6 +3486,8 @@ def ADDADD(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -3610,7 +3656,10 @@ def SUBSUB(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -3643,6 +3692,8 @@ def SUBSUB(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -3829,7 +3880,10 @@ def INCINC(code: list):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -3862,6 +3916,8 @@ def INCINC(code: list):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -4006,7 +4062,10 @@ def DECDEC(code: list):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -4039,6 +4098,8 @@ def DECDEC(code: list):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -4136,6 +4197,8 @@ def ADDSUB(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -4225,7 +4288,10 @@ def ADDSUB(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -4335,6 +4401,8 @@ def ADDINC(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -4424,7 +4492,10 @@ def ADDINC(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -4524,6 +4595,8 @@ def ADDDEC(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -4613,7 +4686,10 @@ def ADDDEC(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -4760,7 +4836,10 @@ def SUBINC(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -4793,6 +4872,8 @@ def SUBINC(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -4960,7 +5041,10 @@ def SUBDEC(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -4993,6 +5077,8 @@ def SUBDEC(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -5160,7 +5246,10 @@ def INCDEC(code: list):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -5193,6 +5282,8 @@ def INCDEC(code: list):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -5337,7 +5428,10 @@ def SUBADD(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -5370,6 +5464,8 @@ def SUBADD(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -5556,7 +5652,10 @@ def INCADD(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -5589,6 +5688,8 @@ def INCADD(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -5746,7 +5847,10 @@ def DECADD(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -5779,6 +5883,8 @@ def DECADD(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -5936,7 +6042,10 @@ def INCSUB(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -5969,6 +6078,8 @@ def INCSUB(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -6126,7 +6237,10 @@ def DECSUB(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -6159,6 +6273,8 @@ def DECSUB(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -6316,7 +6432,10 @@ def DECINC(code: list):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -6349,6 +6468,8 @@ def DECINC(code: list):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -6446,6 +6567,8 @@ def MLTMLT(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -6535,7 +6658,10 @@ def MLTMLT(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -6698,7 +6824,10 @@ def DIVDIV(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -6731,6 +6860,8 @@ def DIVDIV(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -6923,7 +7054,10 @@ def LSHLSH(code: list):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -6956,6 +7090,8 @@ def LSHLSH(code: list):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -7100,7 +7236,10 @@ def RSHRSH(code: list):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -7133,6 +7272,8 @@ def RSHRSH(code: list):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -7277,7 +7418,10 @@ def SRSSRS(code: list):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -7310,6 +7454,8 @@ def SRSSRS(code: list):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -7454,7 +7600,10 @@ def BSLBSL(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -7487,6 +7636,8 @@ def BSLBSL(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -7642,7 +7793,10 @@ def BSRBSR(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -7675,6 +7829,8 @@ def BSRBSR(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -7830,7 +7986,10 @@ def BSSBSS(code: list):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -7863,6 +8022,8 @@ def BSSBSS(code: list):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -8015,7 +8176,10 @@ def LSHBSL(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -8048,6 +8212,8 @@ def LSHBSL(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -8197,7 +8363,10 @@ def BSLLSH(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -8230,6 +8399,8 @@ def BSLLSH(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -8384,7 +8555,10 @@ def RSHBSR(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -8417,6 +8591,8 @@ def RSHBSR(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -8566,7 +8742,10 @@ def BSRRSH(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -8599,6 +8778,8 @@ def BSRRSH(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -8753,7 +8934,10 @@ def SRSBSS(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -8786,6 +8970,8 @@ def SRSBSS(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -8932,7 +9118,10 @@ def BSSSRS(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -8965,6 +9154,8 @@ def BSSSRS(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -9116,7 +9307,10 @@ def RSHSRS(code: list):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -9149,6 +9343,8 @@ def RSHSRS(code: list):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -9293,7 +9489,10 @@ def RSHBSS(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -9326,6 +9525,8 @@ def RSHBSS(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -9475,7 +9676,10 @@ def LSHRSH(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -9508,6 +9712,8 @@ def LSHRSH(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -9653,7 +9859,10 @@ def RSHLSH(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -9686,6 +9895,8 @@ def RSHLSH(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -9831,7 +10042,10 @@ def BSLBSR(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -9864,6 +10078,8 @@ def BSLBSR(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -10019,7 +10235,10 @@ def BSRBSL(code: list, BITS: int):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -10052,6 +10271,8 @@ def BSRBSL(code: list, BITS: int):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -10205,7 +10426,10 @@ def ANDAND(code: list):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -10238,6 +10462,8 @@ def ANDAND(code: list):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -10402,7 +10628,10 @@ def XORXOR(code: list):
     read1 = (
         "JMP",
         "PSH",
-        "CAL"
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
     )
     
     read1and2 = (
@@ -10435,6 +10664,8 @@ def XORXOR(code: list):
         "XOR",
         "NAND",
         "POP",
+        "HPOP",
+        "HRSR",
         "MLT",
         "DIV",
         "MOD",
@@ -10544,7 +10775,63 @@ def PSHPOP(code: list):
                 code[index + 1] = ["MOV", code[index + 1][1], line[1]]
                 success = True
     
+    for index, line in enumerate(code[: -1]):
+        if line[0] == "HPSH":
+            if code[index + 1][0] == "HPOP":
+                code[index] = [""]
+                code[index + 1] = ["MOV", code[index + 1][1], line[1]]
+                success = True
+    
+    for index, line in enumerate(code[: -1]):
+        if line[0] == "HSAV":
+            if code[index + 1][0] == "HRSR":
+                code[index] = [""]
+                code[index + 1] = ["MOV", code[index + 1][1], line[1]]
+                success = True
+    
     code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+## Agressive inliner
+def inliner(code: list):
+    
+    success = False
+    
+    # inline all possible code blocks no matter the cost
+    
+    # find JMP instruction
+    for index1, line in enumerate(code):
+        if line[0] == "JMP":
+            location = line[1]
+            
+            if location.startswith("."):
+                # find if jump location is a valid code block
+                index2 = code.index([location]) + 1
+                codeBlock = []
+                if index2 >= len(code):
+                    bad = True
+                else:
+                    bad = False
+            else:
+                bad = True
+                index2 = len(code)
+            
+            while index2 < len(code):
+                line2 = code[index2]
+                if line2[0].startswith("."):
+                    bad = True
+                    break
+                elif line2[0] in ("HLT", "JMP", "RET", "HRET"):
+                    codeBlock.append(line2.copy())
+                    break
+                else:
+                    codeBlock.append(line2.copy())
+                index2 += 1
+            
+            if not bad:
+                code = code[: index1] + codeBlock + code[index1 + 1: ]#
+                success = True
     
     return code, success
 

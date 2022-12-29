@@ -1,6 +1,6 @@
-IMM R1 0
-.loop
-OUT %NUMB R1
-INC R1 R1
-BRL .loop R1 100
-HLT
+BITS 16
+MINREG 25
+MINHEAP 69
+MINSTACK 0 // does not use software stack
+OUT %NUMB 69
+STR M69 5
