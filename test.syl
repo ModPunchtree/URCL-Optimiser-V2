@@ -1,8 +1,2 @@
-int recursive(int a) {
-    if (a > 0) {
-        return recursive(a - 1);
-    } else {
-        return 69;
-    }
-}
-out(%NUMB, recursive(0));
+char a[3] = {'A', 'B', 'C'};
+out(%TEXT, a[0]);

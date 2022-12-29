@@ -206,7 +206,9 @@ def preprocess(code: list):
             elif code[index + 2] == "[":
                 arrNames.append(name + "___" + "___".join(filter(foo, scope)))
                 arrNames2.append(name)
-                arrayLengths.append(code[index + 3])
+                if not(code[index + 3][0].isnumeric()):
+                    raise Exception(f"Array length must be a number when defining an array")
+                arrayLengths.append(int(code[index + 3], 0))
                 arrayTypes.append(token)
             
             elif name == ")":
@@ -313,8 +315,8 @@ def preprocess(code: list):
             # chop off scopes until a match is found
             # the outermost scope is prioritised
             success = False
-            while arrName.count("___") > 1:
-                if arrName in arrName:
+            while arrName.count("___") > 0:
+                if arrName in arrNames:
                     code[index] = arrName
                     success = True
                     break

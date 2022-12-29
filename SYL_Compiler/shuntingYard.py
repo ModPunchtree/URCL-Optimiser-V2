@@ -275,6 +275,7 @@ def shuntingYard(code: list, varNames: list, funcNames: list, arrNames: list, fu
     outputStack = []
     operatorStack = []
     
+    isArray = False
     while code:
         token = code.pop(0)
         
@@ -294,9 +295,16 @@ def shuntingYard(code: list, varNames: list, funcNames: list, arrNames: list, fu
                     break
             if token == ";":
                 outputStack.append(token)
+            elif token == ",":
+                pass
             else:
                 operatorStack.append(token)
         elif token in ("{", "arrStart"):
+            if isArray:
+                raise Exception("You cannot define arrays inside of arrays!")
+            if operatorStack:
+                if operatorStack[-1] == "=":
+                    isArray = True
             while True:
                 if operatorStack:
                     if operatorStack[-1] not in ("(", "{", "[", "arrStart"):
@@ -305,11 +313,17 @@ def shuntingYard(code: list, varNames: list, funcNames: list, arrNames: list, fu
                         break
                 else:
                     break
-            outputStack.append(token)
-            operatorStack.append(token)
+            if isArray:
+                outputStack.append("arrStart")
+                operatorStack.append("arrStart")
+            else:
+                outputStack.append(token)
+                operatorStack.append(token)
         elif token in ("(", "["):
             operatorStack.append(token)
         elif token in (")", "}", "]", "arrEnd"):
+            if (token == "}") and isArray:
+                token = "arrEnd"
             while True:
                 if operatorStack:
                     if operatorStack[-1] != ("(", "{", "[", "arrStart")[(")", "}", "]", "arrEnd").index(token)]:
@@ -319,7 +333,10 @@ def shuntingYard(code: list, varNames: list, funcNames: list, arrNames: list, fu
                         break
                 else:
                     break
-            if token in ("}", "arrEnd"):
+            if (token == "}") and isArray:
+                isArray = False
+                outputStack.append("arrEnd")
+            elif token in ("}", "arrEnd"):
                 outputStack.append(token)
             if operatorStack:
                 if (operatorStack[-1] in funcNames2) or (operatorStack[-1] in builtins) or (operatorStack[-1] in ("in", "out")):

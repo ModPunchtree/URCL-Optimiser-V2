@@ -1009,13 +1009,15 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
         # array type definition
         elif token in arrTypes:
             # get array length
-            length = code[mainTokenIndex - 1]
+            if not code[mainTokenIndex - 1][0].isnumeric():
+                raise Exception("Array length must be a number in array definition!")
+            length = int(code[mainTokenIndex - 1], 0)
             
             # get array name
             name = code[mainTokenIndex - 2]
             
             # get base heap location of array
-            heapLocation = createArr(name, length) # "#" prepended string
+            heapLocation = createArr(name) # "#" prepended string
             
             # remove name, length and arrType tokens
             mainTokenIndex -= 2
@@ -1067,6 +1069,8 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 # get fetched var type
                 targetType = getType(token)
                 
+                if targetType.startswith("const"):
+                    targetType = targetType[5: ]
                 # type check
                 if (arrayType != targetType) and (targetType != "void") and (arrayType != "void"):
                     raise Exception(f"Array definition {name} contains an element with the wrong type\nExpected type: {arrayType}\nFound type: {targetType}")
@@ -1086,7 +1090,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 code.pop(mainTokenIndex)
             
             # fix mainTokenIndex
-            mainTokenIndex -= 1
+            #mainTokenIndex -= 1
 
         # Arr
         elif token == "Arr":
@@ -1096,7 +1100,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             arrayLocation = getBaseArrayIndex(code[mainTokenIndex - 2]) # "#" prefixed value
             
             # get array type
-            arrayType = getType(arrayLocation)
+            arrayType = getType(code[mainTokenIndex - 2])
             
             # check that offset being fetched is initialised
             if getInitialisationStatus(code[mainTokenIndex - 1]) == False:
