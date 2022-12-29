@@ -94,6 +94,9 @@ async def on_message(message):
                 raise Exception("FATAL - Code block not specified (missing triple backticks: `)")
             code = code[: code.index("```")]
             
+            BITS = 16
+            MINREG = 25
+            
             code = tokenise(code)
             
             code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, variableTypes, functionTypes, arrayTypes, arrayLengths = preprocess(code)
