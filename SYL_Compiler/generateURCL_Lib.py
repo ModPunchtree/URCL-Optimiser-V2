@@ -822,9 +822,13 @@ def binaryOperator(operator: str, tempVarReg: str, leftInput: str, leftType: str
 
     if void:
         if operator in (">=", ">", "<=", "<", "!=", "==", "&&", "||"):
+            answer = list(answer)
             answer[1] = "bool"
+            answer = tuple(answer)
         else:
+            answer = list(answer)
             answer[1] = "void"
+            answer = tuple(answer)
 
     return answer
 
