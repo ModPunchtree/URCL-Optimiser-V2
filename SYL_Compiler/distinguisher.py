@@ -187,7 +187,7 @@ def distinguisher(code: list, varNames: list, funcNames: list, arrNames: list, f
             SOF = False
             indexStartOfLine = index
             while indexStartOfLine > 0:
-                if code[indexStartOfLine] in (";", "}", "{"):
+                if code[indexStartOfLine] in (";", "}", "{", "="):
                     break
                 indexStartOfLine -= 1
                 if indexStartOfLine < 0:
