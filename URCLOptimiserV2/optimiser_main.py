@@ -320,7 +320,7 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1):
         optimisationCount += int(success)
         
         ## Optimisation By Emulation
-        code, success = OBE(code, BITS, MINREG, MINHEAP, maxCycles, M0)
+        code, success = OBE(code, BITS, MINREG, int(MINHEAP, 0), maxCycles, M0)
         overallSuccess |= success
         optimisationCount += int(success)
         

@@ -239,7 +239,9 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
     if M0 != -1:
         for index1, line in enumerate(codeBlock):
             for index2, token in enumerate(line):
-                if token.startswith("M"):
+                if index2 == 0:
+                    pass
+                elif token.startswith("M"):
                     num = int(token[1: ], 0)
                     codeBlock[index1][index2] = f"{num + M0}"
 
@@ -335,12 +337,12 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
         
         # fetch operands (current value in the heap)
         if instruction == "LOD":
-            if line[2].startwith("M"):
+            if line[2].startswith("M"):
                 operands[2] = str(HEAP[int(line[2][1: ], 0)])
             elif line[2][0].isnumeric():
                 operands[2] = str(HEAP[int(line[2], 0)])
         elif instruction == "LLOD":
-            if line[2].startwith("M") and line[3][0].isnumeric():
+            if line[2].startswith("M") and line[3][0].isnumeric():
                 instruction = "LOD"
                 operands[2] = str(HEAP[int(line[2][1: ], 0) + int(line[3], 0)])
                 operands.pop(3)

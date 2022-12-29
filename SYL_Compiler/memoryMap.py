@@ -53,7 +53,7 @@ def memoryMap(URCL: list, funcNames: list, funcMapNames: list, funcMapLocations:
                 if token.startswith("#"):
                     heapLocationName = token[token.index("_") + 1: ]
                     
-                    possibleSize = int(token[1: token.index("_")], 0)
+                    possibleSize = int(token[1: token.index("_")], 0) + 1
                     
                     currentSize = funcSizes[funcMapNames.index(heapLocationName)]
                     
