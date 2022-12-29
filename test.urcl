@@ -1,33 +1,9 @@
 BITS 16
 MINREG 25
-MINHEAP 1
+MINHEAP 3
 MINSTACK 0 // does not use software stack
-JMP .recursive___global_FUNCEND
-.recursive___global_FUNCSTART
-SSETG R2 R1 0
-MOV R2 R2
-STR M0 R1
-BRZ .ifBody_END_0 R2
-LOD R25 M0
-SUB R1 R25 1
-HSAV R25
-HSAV R1
-MOV R1 R1
-STR M0 R25
-HCAL .recursive___global_FUNCSTART
-HRSR R2
-HRSR R3
-MOV R1 R1
-STR M0 R3
-HRET
-JMP .else_END_0
-.ifBody_END_0
-IMM R1 69
-HRET
-.else_END_0
-IMM R1 0
-HRET
-.recursive___global_FUNCEND
-IMM R1 0
-HCAL .recursive___global_FUNCSTART
-OUT %NUMB R1
+STR M2 'C'
+STR M1 'B'
+STR M0 'A'
+LLOD R1 M0 0
+OUT %TEXT R1

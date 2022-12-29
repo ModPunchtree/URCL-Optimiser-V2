@@ -342,6 +342,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
             elif line[2][0].isnumeric():
                 operands[2] = str(HEAP[int(line[2], 0)])
         elif instruction == "LLOD":
+            cycles += 1
             if line[2].startswith("M") and line[3][0].isnumeric():
                 instruction = "LOD"
                 operands[2] = str(HEAP[int(line[2][1: ], 0) + int(line[3], 0)])
@@ -358,9 +359,9 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
             case "RSH":
                 answer = int(operands[2], 0) // 2
             case "LOD":
-                answer = int(operands[2], 0)
+                answer = operands[2]
             case "STR":
-                answer = int(operands[2], 0)
+                answer = operands[2]
             case "BGE":
                 answer = int(operands[2], 0) >= int(operands[3], 0)
             case "NOR":
@@ -370,9 +371,9 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
             case "JMP":
                 answer = True
             case "MOV":
-                answer = int(operands[2], 0)
+                answer = operands[2]
             case "IMM":
-                answer = int(operands[2], 0)
+                answer = operands[2]
             case "LSH":
                 answer = (int(operands[2], 0) * 2) & MAX
             case "INC":
@@ -418,7 +419,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
             case "HLT":
                 answer = True
             case "CPY":
-                answer = int(operands[2], 0)
+                answer = operands[2]
             case "BRC":
                 answer = (int(operands[2], 0) + int(operands[3], 0)) > MAX
             case "BNC":
@@ -488,6 +489,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
             case "LSTR":
                 answer = int(operands[3], 0)
             case "SDIV":
+                cycles += 3
                 op2 = int(operands[2], 0)
                 sign2 = 0
                 if op2 & MSB:
@@ -537,7 +539,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
             case "IN":
                 raise Exception("IN instructions cannot be determined")
             case "OUT":
-                answer = int(operands[2], 0)
+                answer = operands[2]
             case "HPSH":
                 answer = "HPSH"
             case "HPOP":
@@ -565,6 +567,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
                 HEAP[int(operands[1][1: ], 0)] = answer
                 initialisedHEAP[int(operands[1][1: ], 0)] = True
         elif instruction == "LSTR":
+            cycles += 1
             if operands[1].startswith("M"):
                 HEAP[int(operands[1][1: ], 0) + int(operands[2], 0)] = answer
                 initialisedHEAP[int(operands[1][1: ], 0) + int(operands[2], 0)] = True
@@ -575,6 +578,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
                 HEAP[int(operands[1], 0) + int(operands[2], 0)] = answer
                 initialisedHEAP[int(operands[1], 0) + int(operands[2], 0)] = True
         elif instruction == "CPY":
+            cycles += 1
             try:
                 HEAP[int(operands[1][1: ], 0)] = answer
                 initialisedHEAP[int(operands[1][1: ], 0)] = True
