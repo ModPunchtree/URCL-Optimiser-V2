@@ -128,7 +128,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
         
         # remove non-function scopes from end of scope
         for i in range(len(scopes)):
-            if scopes[len(scopes) - 1 - i] in ("if", "while", "elseif", "else"):
+            if scopes[len(scopes) - 1 - i] not in funcMapNames:
                 scopes.pop()
             else:
                 break
@@ -1322,7 +1322,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 code[mainTokenIndex] = "whileHeader2End"
                 
                 # fetch and prepend the saved whileHeader tokens to code
-                code = whileHeaderTokens.pop().copy() + code.copy()
+                code = code[: mainTokenIndex] + whileHeaderTokens.pop().copy() + code[mainTokenIndex: ]
                 
             # elif end of elseif
             elif scopeEnd == "elseif":
@@ -1561,9 +1561,9 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 
                 # remove tokens
                 mainTokenIndex -= 2
-                code.pop(0)
-                code.pop(0)
-                code.pop(0)
+                code.pop(mainTokenIndex)
+                code.pop(mainTokenIndex)
+                code.pop(mainTokenIndex)
         
             # ArrAssign (array left side of =)
             elif code[mainTokenIndex - 2] == "ArrAssign":
@@ -1970,8 +1970,8 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             delete(varName)
             
             mainTokenIndex -= 1
-            code.pop()
-            code.pop()
+            code.pop(mainTokenIndex)
+            code.pop(mainTokenIndex)
         
         else:
             raise Exception(f"Unrecognised generate URCL token: {token}")

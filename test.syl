@@ -1,7 +1,13 @@
-
 int main() {
-    out(%NUMB, 69);
+  int a = 0;
+  int b = 1;
+  out(%NUMB, a);
+  out(%NUMB, b);
+
+  while (b < 256) {
+    a += b;
+    out(%NUMB, a);
+    b += a;
+    out(%NUMB, b);
+  }
 }
-
-
-

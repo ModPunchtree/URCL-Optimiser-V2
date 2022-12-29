@@ -493,7 +493,7 @@ def preprocess(code: list):
             code.append(";")
             
     funcMapNames, funcMapLocations = createFuncMap(code, [i[0] for i in funcNames])
-    funcNames2 = [i[0] for i in funcNames]
+    funcNames3 = [i[0] for i in funcNames]
     
     # Remove any function definitions that are never called
     def removeUselessFunc(code: list, funcMapNames: list, funcMapLocations: list, funcNames: list, funcNames2: list):
@@ -553,7 +553,7 @@ def preprocess(code: list):
         index = 0
         while index < len(code) - 1:
             token = code[index + 1]
-            if (token in funcNames2) and (code[index] not in types):
+            if (token in funcNames3) and (code[index] not in types):
                 # func call not definition
                 locations = funcMapLocations[funcMapNames.index(token)]
                 if token not in locations:
@@ -584,7 +584,7 @@ def preprocess(code: list):
 
                                 inline = code[indexStart: indexEnd][code[indexStart: indexEnd].index("{") + 1: ]
                                 
-                                numberOfInputs = funcNames[funcNames2.index(token)][1]
+                                numberOfInputs = funcNames[funcNames3.index(token)][1]
                                 
                                 # get list of callerInputs
                                 i = index + 3 # skip (
@@ -598,7 +598,7 @@ def preprocess(code: list):
                                         break
                                 
                                 # get list of functionInputs
-                                functionInputs = funcNames[funcNames2.index(token)][3]
+                                functionInputs = funcNames[funcNames3.index(token)][3]
                                 
                                 # replace input vars in inline
                                 for i, token69 in enumerate(inline):
@@ -613,7 +613,7 @@ def preprocess(code: list):
                                 scope = ["global"]
                                 while i != goal:
                                     if i > 0:
-                                        if (code[i] in funcNames2) and (code[i - 1] in types):
+                                        if (code[i] in funcNames3) and (code[i - 1] in types):
                                             scope.append(code[i])
                                             newFunc = True
                                             i += 1
@@ -661,36 +661,46 @@ def preprocess(code: list):
                                 oldFuncNames = [] # list of old func names
                                 newFuncNames = [] # list of new func names
                                 for i, token69 in enumerate(inline):
-                                    if token69 in varNames:
-                                        inline[i] = token69[: token69.index("___")] + inlineScope
-                                        if token69[: token69.index("___")] + inlineScope not in varNames:
-                                            varNames.append(token69[: token69.index("___")] + inlineScope)
-                                            varNames2.append(token69[: token69.index("___")])
-                                            variableTypes.append(variableTypes[varNames.index(token69)])
-                                    elif token69 in funcNames2:
-                                        if i != 0:
-                                            # check if function definition
-                                            if inline[i - 1] in types:
-                                                # get original func stuff
-                                                originalFunc = funcNames[funcNames2.index(token69)]
-                                                originalFunc = list(originalFunc)
-                                                originalFunc[0] = token69[: token69.index("___")] + inlineScope
-                                                originalFunc = tuple(originalFunc)
-                                                
-                                                originalType = functionTypes[funcNames2.index(token69)]
-                                                
-                                                # append to old func list
-                                                oldFuncNames.append(inline[i])
-                                                newFuncNames.append(token69[: token69.index("___")] + inlineScope)
-                                                
-                                                # replace function name
-                                                inline[i] = token69[: token69.index("___")] + inlineScope
-                                                
-                                                # add to list of functions if not in list of functions
-                                                if token69[: token69.index("___")] + inlineScope not in funcNames2:
-                                                    funcNames.append(deepcopy(originalFunc))
-                                                    funcNames2.append(token69[: token69.index("___")] + inlineScope)
-                                                    functionTypes.append(originalType)
+                                    #token69 = token69
+                                    while token69.count("___"):
+                                        
+                                    
+                                        if token69 in varNames:
+                                            inline[i] = token69[: token69.index("___")] + inlineScope
+                                            if token69[: token69.index("___")] + inlineScope not in varNames:
+                                                varNames.append(token69[: token69.index("___")] + inlineScope)
+                                                varNames2.append(token69[: token69.index("___")])
+                                                variableTypes.append(variableTypes[varNames.index(token69)])
+                                            break
+                                        elif token69 in funcNames3:
+                                            if i != 0:
+                                                # check if function definition
+                                                if inline[i - 1] in types:
+                                                    # get original func stuff
+                                                    originalFunc = funcNames[funcNames3.index(token69)]
+                                                    originalFunc = list(originalFunc)
+                                                    originalFunc[0] = token69[: token69.index("___")] + inlineScope
+                                                    originalFunc = tuple(originalFunc)
+                                                    
+                                                    originalType = functionTypes[funcNames3.index(token69)]
+                                                    
+                                                    # append to old func list
+                                                    oldFuncNames.append(inline[i])
+                                                    newFuncNames.append(token69[: token69.index("___")] + inlineScope)
+                                                    
+                                                    # replace function name
+                                                    inline[i] = token69[: token69.index("___")] + inlineScope
+                                                    
+                                                    # add to list of functions if not in list of functions
+                                                    if token69[: token69.index("___")] + inlineScope not in funcNames3:
+                                                        funcNames.append(deepcopy(originalFunc))
+                                                        funcNames3.append(token69[: token69.index("___")] + inlineScope)
+                                                        functionTypes.append(originalType)
+                                            break
+                                        else:
+                                            token69 = token69[: : -1]
+                                            token69 = token69[token69.index("___") + 3: ]
+                                            token69 = token69[: : -1]
                                     
                                     if i > 0:
                                         if (inline[i] in varNames) and (code[i - 1] in types):
@@ -744,7 +754,7 @@ def preprocess(code: list):
                                 index = -1
                                 
                                 funcMapNames, funcMapLocations = createFuncMap(code, [i[0] for i in funcNames])
-                                code, funcMapNames, funcMapLocations, funcNames, funcNames2 = removeUselessFunc(code, funcMapNames, funcMapLocations, funcNames, funcNames2)
+                                code, funcMapNames, funcMapLocations, funcNames, funcNames3 = removeUselessFunc(code, funcMapNames, funcMapLocations, funcNames, funcNames3)
                                 
                                 keepGoing = True
                                 break
