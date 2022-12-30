@@ -164,7 +164,7 @@ def fixBITS(code: list):
             code.pop(index)
             break
     
-    MINHEAP = 0
+    MINHEAP = "0"
     for index, line in enumerate(code):
         if line[0] == "MINHEAP":
             MINHEAP = line[-1]
@@ -172,7 +172,7 @@ def fixBITS(code: list):
             code.pop(index)
             break
     
-    MINSTACK = 0
+    MINSTACK = "0"
     for index, line in enumerate(code):
         if line[0] == "MINSTACK":
             MINSTACK = line[-1]
