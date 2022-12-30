@@ -1958,9 +1958,10 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             
             # don't bother with type checks
             
-            # check if initialised
-            if (initialisedRegList[owners.index(currentFuncName)][int(regName[1: ], 0) - 1] == False) and (not regName[0].isnumeric()):
-                raise Exception(f"The out function cannot accept unintialised values\nUninitialised variable name: {varName}")
+            if not((regName[0].isnumeric()) or (regName.startswith("'"))):
+                # check if initialised
+                if (initialisedRegList[owners.index(currentFuncName)][int(regName[1: ], 0) - 1] == False) and (not regName[0].isnumeric()):
+                    raise Exception(f"The out function cannot accept unintialised values\nUninitialised variable name: {varName}")
             
             # delete if TEMP
             if code[mainTokenIndex - 1].startswith("__TEMP"):

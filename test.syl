@@ -2,8 +2,8 @@
 void printStr(char *p) {
     char *index = 0;
 
-    while (p[index] != 0) {
-        out(%text, p[index]);
+    while (*(p+index) != 0) {
+        out(%text, *(p+index));
         index += 1;
     }
 }
@@ -11,6 +11,11 @@ void printStr(char *p) {
 void main() {
     char string = {"Hello", 0};
     printStr(string);
+
+    out(%text, ' ');
+
+    char string2 = {"World!", 0};
+    printStr(string2);
 }
 
 
