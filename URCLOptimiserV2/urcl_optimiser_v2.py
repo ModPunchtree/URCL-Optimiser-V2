@@ -95,6 +95,11 @@ def tokenise(code: list):
         new = []
         extendSingle = False
         extendDouble = False
+        # fix ' ' chars
+        for index in range(len(raw) - 1):
+            if (raw[index] == "'") and (raw[index + 1] == "'"):
+                raw[index] = "' '"
+                raw[index + 1] = ""
         for token in raw:
             if token.startswith('"'):
                 bigToken = token
