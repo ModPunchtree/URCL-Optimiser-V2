@@ -1202,7 +1202,9 @@ def partialImmediateFolding(code: list, BITS: int):
         "SSETL",
         "SSETG",
         "SSETLE",
-        "SSETGE"
+        "SSETGE",
+        "LLOD",
+        "LSTR"
     )
 
     MAX = 2**BITS - 1
@@ -1210,8 +1212,11 @@ def partialImmediateFolding(code: list, BITS: int):
 
     for index, line in enumerate(code):
         if line[0] in optimisableInstructions:
+            imm1 = ""
             imm2 = ""
             imm3 = ""
+            if line[1][0: ].isnumeric():
+                imm2 = int(line[1], 0)
             if line[2][0: ].isnumeric():
                 imm2 = int(line[2], 0)
             if line[3][0: ].isnumeric():
@@ -1262,6 +1267,9 @@ def partialImmediateFolding(code: list, BITS: int):
                         answer = ["DEC", line[1], line[2]]
                     elif imm3 == MAX:
                         answer = ["INC", line[1], line[2]]
+                    elif type(imm3) == int:
+                        num = ((MAX - imm3) + 1) & MAX
+                        answer = ["ADD", line[1], line[2], str(num)]
                 
                 case "AND":
                     if (imm2 == 0) or (imm3 == 0):
@@ -1593,7 +1601,42 @@ def partialImmediateFolding(code: list, BITS: int):
                     elif type(imm3) == int:
                         if imm3 ^ MSB == 0:
                             answer = ["IMM", line[1], str(MAX)]
+                
+                case "LLOD":
+                    if (type(imm2) == int) and (type(imm3) == int):
+                        answer = ["LOD", line[1], str(imm2 + imm3)]
+                    elif type(imm3) == int:
+                        if imm3 == 0:
+                            answer = ["LOD", line[1], line[2]]
+                        elif line[2].startswith("M"):
+                            num = int(line[2][1: ], 0)
+                            answer = ["LOD", line[1], f"M{num + imm2}"]
+                    elif type(imm2) == int:
+                        if imm2 == 0:
+                            answer = ["LOD", line[1], line[3]]
+                        elif line[3].startswith("M"):
+                            num = int(line[3][1: ], 0)
+                            answer = ["LOD", line[1], f"M{num + imm2}"]
                     
+                case "LSTR":
+                    if (type(imm1) == int) and (type(imm2) == int):
+                        answer = ["STR", str(imm1 + imm2), line[3]]
+                    elif type(imm2) == int:
+                        if imm2 == 0:
+                            answer = ["STR", line[1], line[3]]
+                        elif line[1].startswith("M"):
+                            num = int(line[1][1: ], 0)
+                            answer = ["STR", f"M{num + imm2}", line[3]]
+                    elif type(imm1) == int:
+                        if imm1 == 0:
+                            answer = ["STR", line[2], line[3]]
+                        elif line[2].startswith("M"):
+                            num = int(line[2][1: ], 0)
+                            answer = ["STR", f"M{num + imm1}", line[3]]
+                
+                case _:
+                    raise Exception(f"Unhandled instruction: {line[0]}")
+                
             if type(answer) == list:
                 code[index] = answer.copy()
                 success = True
@@ -3201,30 +3244,30 @@ def SETBranch(code: list):
                 
                 elif line2[0].startswith("."):
                     break
-                elif line2[0] in read2and3:
-                    if line2[2] in readValues:
-                        break
-                    elif line2[3] in readValues:
-                        break
-                elif line2[0] in read2:
-                    if line2[2] in readValues:
-                        break
-                elif line2[0] in read1and2and3:
-                    if line2[1] in readValues:
-                        break
-                    elif line2[2] in readValues:
-                        bad = True
-                        break
-                    elif line2[3] in readValues:
-                        break
-                elif line2[0] in read1:
-                    if line2[1] in readValues:
-                        break
-                elif line2[0] in read1and2:
-                    if line2[1] in readValues:
-                        break
-                    elif line2[2] in readValues:
-                        break
+                #elif line2[0] in read2and3:
+                #    if line2[2] in readValues:
+                #        break
+                #    elif line2[3] in readValues:
+                #        break
+                #elif line2[0] in read2:
+                #    if line2[2] in readValues:
+                #        break
+                #elif line2[0] in read1and2and3:
+                #    if line2[1] in readValues:
+                #        break
+                #    elif line2[2] in readValues:
+                #        bad = True
+                #        break
+                #    elif line2[3] in readValues:
+                #        break
+                #elif line2[0] in read1:
+                #    if line2[1] in readValues:
+                #        break
+                #elif line2[0] in read1and2:
+                #    if line2[1] in readValues:
+                #        break
+                #    elif line2[2] in readValues:
+                #        break
                 elif line2[0] in write1:
                     if line2[1] == write:
                         break
@@ -10796,6 +10839,219 @@ def PSHPOP(code: list):
     code, success2 = removeEmptyLines(code)
     
     return code, success
+
+### ADDLOD
+def ADDLOD(code: list):
+    
+    branches = (
+        "BGE",
+        "JMP",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BOD",
+        "BEV",
+        "BLE",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CAL",
+        "RET",
+        "BRC",
+        "BNC",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE",
+        "HCAL",
+        "HRET"
+    )
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "HPOP",
+        "HRSR",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    success = False
+    
+    for index, line in enumerate(code[: -1]):
+        if line[0] == "ADD":
+            write = line[1]
+            read = line[2: ]
+            
+            for index2, line2 in enumerate(code[index + 1:]):
+                if line2[0] == "LOD":
+                    if (line2[1] == line2[2]) and (line2[1] == write):
+                        code[index + 1 + index2] = ["LLOD", write, line[2], line[3]]
+                        code.pop(index)
+                        success = True
+                        return code, success
+            
+                elif line2.startswith("."):
+                    break
+                
+                elif line2[0] in branches:
+                    break
+                
+                # if intermediate value is overwritten break
+                if line2[0] in write1:
+                    if line2[1] == write:
+                        break
+                    # if originally read values are overwritten, break
+                    elif line2[1] in read:
+                        break
+                
+                # if intermediate value is read break
+                if line2[0] in read2and3:
+                    if line2[2] == write:
+                        break
+                    elif line2[3] == write:
+                        break
+                elif line2[0] in read2:
+                    if line2[2] == write:
+                        break
+                elif line2[0] in read1and2and3:
+                    if line2[1] == write:
+                        break
+                    if line2[2] == write:
+                        break
+                    elif line2[3] == write:
+                        break
+                elif line2[0] in read1:
+                    if line2[1] == write:
+                        break
+                elif line2[0] in read1and2:
+                    if line2[1] == write:
+                        break
+                    if line2[2] == write:
+                        break
+    
+    return code, success
+
 
 ## Agressive inliner
 def inliner(code: list):

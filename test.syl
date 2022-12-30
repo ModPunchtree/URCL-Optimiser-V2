@@ -1,8 +1,16 @@
-int fib(int a) {
-  if (a > 1) {
-    return fib(a - 1) + fib(a - 2);
-  } else {
-    return a;
-  }
+
+void printStr(char *p) {
+    char *index = 0;
+
+    while (p[index] != 0) {
+        out(%text, p[index]);
+        index += 1;
+    }
 }
-out(%numb, fib(8));
+
+void main() {
+    char string = {"Hello", 0};
+    printStr(string);
+}
+
+

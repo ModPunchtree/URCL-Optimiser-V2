@@ -539,7 +539,10 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             elif name in funcMapNames:
                 return functionTypes[funcMapNames.index(name)]
             elif name in arrNames:
-                return arrayTypes[arrNames.index(name)]
+                answer = arrayTypes[arrNames.index(name)]
+                if not answer.endswith("*"):
+                    answer += "*"
+                return answer
             else:
                 name = stripScope(name)
                 
@@ -1498,6 +1501,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 raise Exception(f"Unary operator input value cannot be uninitialised!\nUninitialised variable: {code[mainTokenIndex - 1]}")
             
             # if singleInput starts with "#":
+            arrayLen = -1
             if singleInput.startswith("#"):
                 # fix type
                 if not(singleType.endswith("*")):

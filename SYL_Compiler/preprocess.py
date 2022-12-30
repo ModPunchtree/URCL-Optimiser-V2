@@ -604,8 +604,16 @@ def preprocess(code: list):
                                 
                                 # replace input vars in inline
                                 for i, token69 in enumerate(inline):
-                                    if token69 in functionInputs:
-                                        inline[i] = callerInputs[functionInputs.index(token69)]
+                                    if token69.startswith(functionInputs):
+                                        x = 0 # index
+                                        y = 0 # length
+                                        for j in range(len(functionInputs)):
+                                            if token69.startswith(functionInputs[j]):
+                                                if len(functionInputs[j]) > y:
+                                                    y = len(functionInputs[j])
+                                                    x = j
+                                        
+                                        inline[i] = callerInputs[x]
                                 
                                 # find current scope
                                 # index + 1 is the index that the scope should be found for
