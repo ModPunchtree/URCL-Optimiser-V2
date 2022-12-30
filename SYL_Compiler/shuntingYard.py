@@ -333,7 +333,7 @@ def shuntingYard(code: list, varNames: list, funcNames: list, arrNames: list, fu
                         break
                 else:
                     break
-            if (token == "arrEnd") and isArray:
+            if (token == "}") and isArray:
                 isArray = False
                 outputStack.append("arrEnd")
             elif token in ("}", "arrEnd"):

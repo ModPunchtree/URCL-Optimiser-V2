@@ -1,8 +1,8 @@
-char a = {"Hello World!", 0};
-
-char* pointer = 0;
-
-while (a[pointer] != 0) {
-    out(%TEXT, a[pointer]);
-    pointer += 1;
+int fib(int a) {
+  if (a > 1) {
+    return fib(a - 1) + fib(a - 2);
+  } else {
+    return a;
+  }
 }
+out(%numb, fib(8));

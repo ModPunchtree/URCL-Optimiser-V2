@@ -54,11 +54,12 @@ def distinguisher(code: list, varNames: list, funcNames: list, arrNames: list, f
     code.insert(0, "")
     for index, token in enumerate(code):
         if token in polariseable:
-            if code[index - 1] not in operators:
+            if (code[index - 1] not in operators) or (code[index - 1] == ")"):
                 code[index] = f"BINARY{token}"
             else:
                 code[index] = f"UNARY{token}"
-                raise Exception(f"UNARY& is not supported")
+                if code[index] == "UNARY&":
+                    raise Exception(f"UNARY& is not supported")
     code.pop(0)
     
     types = (
