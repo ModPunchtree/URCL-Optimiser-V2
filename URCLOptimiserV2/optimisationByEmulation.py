@@ -449,12 +449,12 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
             case "BSL":
                 answer = int(operands[2], 0) << int(operands[3], 0)
             case "SRS":
-                if int(operands[3], 0) & MSB:
+                if int(operands[2], 0) & MSB:
                     answer = (int(operands[2], 0) >> 1) + MSB
                 else:
                     answer = int(operands[2], 0) >> 1
             case "BSS":
-                if int(operands[3], 0) & MSB:
+                if int(operands[2], 0) & MSB:
                     answer = (int(operands[2], 0) >> int(operands[3], 0)) + ((2**BITS) - ((2**BITS) >> int(operands[3], 0)))
                 else:
                     answer = int(operands[2], 0) >> int(operands[3], 0)
