@@ -8,4 +8,4 @@ uint ack(uint m, uint n) {
         return ack(m - 1, ack(m, n - 1));
     }
 }
-out(%numb, ack(0, 1));
+out(%numb, ack(2, 1));

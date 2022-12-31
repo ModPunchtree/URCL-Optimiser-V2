@@ -862,6 +862,10 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                     # fetch copy of input (right to left)
                     fetchCopyVar(f"R{inputIndex + 1}", code[mainTokenIndex])
                     
+                    # if var just fetched is TEMP delete it
+                    if code[mainTokenIndex].startswith("__TEMP"):
+                        delete(code[mainTokenIndex])
+                    
                     # pop input var
                     code.pop(mainTokenIndex)
                     # note that the original func call token has not been popped yet
@@ -884,6 +888,10 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                     # fetch copy of input (right to left)
                     regName = fetchVar(code[mainTokenIndex])
                     
+                    # if var just fetched is TEMP delete it
+                    if code[mainTokenIndex].startswith("__TEMP"):
+                        delete(code[mainTokenIndex])
+                    
                     # HPSH regName
                     URCL.append(["HPSH", regName])
                     
@@ -900,6 +908,14 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             for i in range(unusedRegisters):
                 regIndex = MINREG - 1 - i
                 if registerStack[owners.index(currentFuncName)][regIndex] != "":
+                    
+                    # find if recursive and var being evicted is being HSAV + HRET
+                    if recursive:
+                        varName = registerStack[owners.index(currentFuncName)][regIndex]
+                        if varName in localVars:
+                            # mark var as invalid as it will be HRSR later
+                            initialisedRegList[owners.index(currentFuncName)][regIndex] = False
+                    
                     evictReg(f"R{regIndex + 1}", currentFuncName)
             
             # HCAL function
