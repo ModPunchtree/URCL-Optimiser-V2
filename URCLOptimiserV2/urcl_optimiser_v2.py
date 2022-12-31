@@ -11059,6 +11059,21 @@ def ADDLOD(code: list):
     
     return code, success
 
+### POPPSH
+def POPPSH(code: list):
+    
+    success = False
+    
+    for index, line in enumerate(code[: -1]):
+        if line[0] == "POP":
+            if code[index + 1][0] == "PSH":
+                code[index] = ["LOD", line[1], "SP"]
+                code[index + 1] = ["STR", "SP", code[index + 1][1]]
+                success = True
+    
+    code, success2 = removeEmptyLines(code)
+    
+    return code, success
 
 ## Agressive inliner
 def inliner(code: list):

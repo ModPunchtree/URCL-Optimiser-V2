@@ -321,6 +321,10 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1):
         overallSuccess |= success
         optimisationCount += int(success)
         
+        code, success = POPPSH(code)
+        overallSuccess |= success
+        optimisationCount += int(success)
+        
         # aggressive inliner
         code, success = inliner(code)
         overallSuccess |= success
