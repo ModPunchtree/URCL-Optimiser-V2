@@ -2197,7 +2197,7 @@ def writeBeforeRead(code: list):
         "BRN",
         "BRP",
         "CAL",
-        "HCAL"
+        "HCAL",
         "RET",
         "HRET",
         "HLT",
@@ -2784,6 +2784,8 @@ def propagateMOV(code: list):
                 elif line2[0] in write1:
                     if (line2[1] == sourceReg) or (line2[1] == targetReg):
                         break
+                elif line2[0] in ("HLT", "RET", "CAL", "JMP", "HCAL", "HRET"):
+                    break
     
     return code, success
 

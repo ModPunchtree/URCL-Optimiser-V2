@@ -383,7 +383,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
         initialisedReg = initialisedRegList[owners.index(funcName)]
         initialisedHeap = initialisedHeapList[owners.index(funcName)]
         
-        if "" in registers:
+        if False: # "" in registers:
             # get regIndex
             regIndex = registers.index("")
             
@@ -442,9 +442,6 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 
                 # put into heap
                 heap[heapIndex] = varName
-                
-                # add original owner address
-                originalHeapLocations[owners.index(funcName)][regIndex] = heapIndex
             
             else:
                 # append to heap
@@ -452,9 +449,6 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 
                 # mark reg as uninitalised
                 initialisedHeap.append(False)
-                
-                # add original owner address
-                originalHeapLocations[owners.index(funcName)][regIndex] = heapIndex
         
         return # nothing
     
@@ -610,14 +604,19 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             initialisedHeap = initialisedHeapList[owners.index(funcName)]
             
             if varName in registers:
-                if varName != registers[int(regName[1: ], 0) - 1]:
+                if varName == registers[int(regName[1: ], 0) - 1]:
                     # evict target register
                     evictReg(regName, currentFuncName)
-                
-                # check register initialisation status
-                if initialisedReg[registers.index(varName)]:
-                    # MOV regName oldReg
-                    URCL.append(["MOV", regName, f"R{registers.index(varName) + 1}"])
+                    
+                else:
+                    #if varName != registers[int(regName[1: ], 0) - 1]:
+                    # evict target register
+                    evictReg(regName, currentFuncName)
+                    
+                    # check register initialisation status
+                    if initialisedReg[registers.index(varName)]:
+                        # MOV regName oldReg
+                        URCL.append(["MOV", regName, f"R{registers.index(varName) + 1}"])
                 
                 return # nothing
             
@@ -816,6 +815,9 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             # point to the rightmost input var
             mainTokenIndex -= 1
             
+            # create list of input vars
+            inputVars = code[mainTokenIndex + 1 - numberOfInputs: mainTokenIndex + 1].copy()
+            
             if recursive:
                 # fetch and push all local variables onto the save stack HSAV
                 
@@ -824,11 +826,13 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 
                 # fetch each value individually and push onto save stack
                 for var in localVars:
-                    # fetch var
-                    regName = fetchVar(var)
-                    
-                    # HSAV regName
-                    URCL.append(["HSAV", regName])
+                    # do not save temp vars that are inputs to the func
+                    if not(var.startswith("__TEMP") and (var in inputVars)):
+                        # fetch var
+                        regName = fetchVar(var)
+                        
+                        # HSAV regName
+                        URCL.append(["HSAV", regName])
             
             # fetch the input vars for the function (right to left, Rx to R1) (HPSH first before registers)
             inputIndex = numberOfInputs - 1
@@ -908,6 +912,9 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             # assign R1 as the location of a new TEMP var (DO NOT AUTOMATICALLY CREATE THIS VAR - do it manually)
             # mark R1 as the most recently used register (all other registers are still empty)
             tempVar = createTEMP(returnType)
+            
+            # invalid fetch var - hopefully into R1
+            fetchVar(tempVar, True)
             # mark tempVar as initialised
             initialisedRegList[owners.index(currentFuncName)][0] = True
             
@@ -916,14 +923,16 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
     
                 # for every var in localVars backwards
                 for var in localVars[: : -1]:
-                    # fetch Var (invalid)
-                    regName = fetchVar(var, invalid = True)
+                    # do not restore temp vars that are inputs to the func
+                    if not(var.startswith("__TEMP") and (var in inputVars)):
+                        # fetch Var (invalid)
+                        regName = fetchVar(var, invalid = True)
                     
-                    # HPOP regName
-                    URCL.append(["HRSR", regName])
+                        # HRSR regName
+                        URCL.append(["HRSR", regName])
                     
-                    # mark reg as initialised
-                    initialisedRegList[owners.index(currentFuncName)][int(regName[1:], 0) - 1] = True
+                        # mark reg as initialised
+                        initialisedRegList[owners.index(currentFuncName)][int(regName[1:], 0) - 1] = True
             
             # insert new TEMP into list of tokens
             code[mainTokenIndex] = tempVar
@@ -989,6 +998,8 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                         # create variable
                         createVar(varName, code[mainTokenIndex]) # defines left to right, R1 to Rx
                         
+                        # invalid fetch into registers (hopefully is R1)
+                        fetchVar(varName, True)
                         # mark as initialised
                         initialisedRegList[owners.index(currentFuncName)][registerStack[owners.index(currentFuncName)].index(varName)] = True
                     
