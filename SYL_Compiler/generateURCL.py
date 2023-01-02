@@ -763,6 +763,26 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
         
         raise Exception(f"Tried to fetch initialisation status of undefined variable: {varName}")
     
+    def returnEvictRegisters(funcName: str):
+        
+        # funcName should be the current function scope
+        
+        # this does a fake evict if the variable is local
+        
+        # evict each register in turn
+        for i in range(MINREG):
+            var = registerStack[owners.index(funcName)][i]
+            func = getFuncFromVar(var)
+            length = len(URCL)
+            
+            evictReg(f"R{i + 1}", funcName)
+            
+            # get rid of the generated code if var is local
+            if (func == funcName) and (length != len(URCL)):
+                URCL.pop()
+        
+        return # return nothing
+    
     URCL = []
     
     registerStack = [["" for i in range(MINREG)] for j in range(len(funcMapNames))]
@@ -1256,8 +1276,8 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             # delete all exact locals
             deleteExactLocals()
             
-            # evict all variables from the registers
-            evictRegisters(currentFuncName)
+            # evict all non-local variables from the registers and "evict" all local variables
+            returnEvictRegisters(currentFuncName)
             
             # HRET
             URCL.append(["HRET"])
