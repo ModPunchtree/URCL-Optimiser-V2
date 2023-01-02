@@ -922,8 +922,12 @@ def unaryOperator(operator: str, tempVarReg: str, singleInput: str, singleType: 
     # fix return type
     if void:
         if operator in (""):
+            answer = list(answer)
             answer[1] = "bool"
+            answer = tuple(answer)
         else:
+            answer = list(answer)
             answer[1] = "void"
+            answer = tuple(answer)
 
     return answer

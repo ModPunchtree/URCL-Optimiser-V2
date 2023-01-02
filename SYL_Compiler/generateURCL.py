@@ -120,7 +120,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
         "!"
     )
     
-    def getFuncFromVar(varName: str):
+    def getFuncFromVar(varName: str):        
         scopes = varName.split("___")
         
         # remove variable name
@@ -135,8 +135,9 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 scopelessFuncs.append(i)
         
         # remove non-function scopes from end of scope
-        for i in range(len(scopes)):
-            if scopes[len(scopes) - 1 - i] not in scopelessFuncs:
+        length = len(scopes)
+        for i in range(length):
+            if scopes[length - 1 - i] not in scopelessFuncs:
                 scopes.pop()
             else:
                 break
@@ -358,7 +359,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             
         return # nothing
     
-    def createVar(varName: str, varType: str):
+    def createVar(varName: str, varType: str, arrNames: tuple, getFuncFromVar, owners):
         
         if varName.startswith(tuple(arrNames)):
             raise Exception(f"Tried to define array: {varName} as a variable")
@@ -527,6 +528,9 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
         if name.startswith("'"):
             return "constchar"
         
+        if name.startswith("[0]"):
+            stop = 1
+        
         while name.count("___") > 0:
             if name in varNames:
                 return variableTypes[varNames.index(name)]
@@ -534,9 +538,16 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 return functionTypes[funcMapNames.index(name)]
             elif name in arrNames:
                 answer = arrayTypes[arrNames.index(name)]
-                if not answer.endswith("*"):
+                if (not answer.endswith("*")) and (answer != "void"):
                     answer += "*"
                 return answer
+            elif name.startswith("["):
+                name2 = name[name.index("]") + 1: ]
+                if name2 in arrNames:
+                    answer = arrayTypes[arrNames.index(name2)]
+                    return answer
+                else:
+                    name = stripScope(name)
             else:
                 name = stripScope(name)
                 
@@ -554,7 +565,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             else:
                 num += 1
         
-        createVar(tempVar, tempType)
+        createVar(tempVar, tempType, arrNames, getFuncFromVar, owners)
         
         return tempVar # return name of new TEMP
     
@@ -779,6 +790,9 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
     while mainTokenIndex < len(code):
         token = code[mainTokenIndex]
         
+        if token == "string30___global":
+            stop = 1
+        
         # raw number or char
         if (token[0].isnumeric()) or (token.startswith("'")):
             mainTokenIndex += 1
@@ -791,7 +805,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
         elif token in varTypes:
             name = code[mainTokenIndex - 1]
 
-            createVar(name, token)
+            createVar(name, token, arrNames, getFuncFromVar, owners)
             code.pop(mainTokenIndex)
         
         # function (function call)
@@ -1002,7 +1016,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                         evictReg(f"R{regIndex + 1}", currentFuncName)
                         
                         # create variable (it should go into the evicted reg)
-                        createVar(varName, code[mainTokenIndex])
+                        createVar(varName, code[mainTokenIndex], arrNames, getFuncFromVar, owners)
                         
                         # HPOP regName
                         URCL.append(["HPOP", f"R{regIndex + 1}"]) # put value into newly created var
@@ -1012,7 +1026,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                         
                     else:
                         # create variable
-                        createVar(varName, code[mainTokenIndex]) # defines left to right, R1 to Rx
+                        createVar(varName, code[mainTokenIndex], arrNames, getFuncFromVar, owners) # defines left to right, R1 to Rx
                         
                         # invalid fetch into registers (hopefully is R1)
                         fetchVar(varName, True)
@@ -1130,7 +1144,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             arrayLocation = getBaseArrayIndex(code[mainTokenIndex - 2]) # "#" prefixed value
             
             # get array type
-            arrayType = getType(code[mainTokenIndex - 2])
+            arrayType = getType("[0]" + code[mainTokenIndex - 2])
             
             # check that offset being fetched is initialised
             if getInitialisationStatus(code[mainTokenIndex - 1]) == False:
@@ -1478,9 +1492,9 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             leftType = getType(code[mainTokenIndex - 2])
             
             # check that vars being fetched are initialised
-            if getInitialisationStatus(code[mainTokenIndex - 1]) == False:
+            if (getInitialisationStatus(code[mainTokenIndex - 1]) == False) and (rightType != "void"):
                 raise Exception(f"Binary operator input values cannot be uninitialised!\nUninitialised variable: {code[mainTokenIndex - 1]}")
-            if getInitialisationStatus(code[mainTokenIndex - 2]) == False:
+            if (getInitialisationStatus(code[mainTokenIndex - 2]) == False) and (leftType != "void"):
                 raise Exception(f"Binary operator input values cannot be uninitialised!\nUninitialised variable: {code[mainTokenIndex - 2]}")
             
             # type check and get result type
@@ -1524,14 +1538,14 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             singleType = getType(code[mainTokenIndex - 1])
             
             # check that var being fetched is initialised
-            if getInitialisationStatus(code[mainTokenIndex - 1]) == False:
+            if (getInitialisationStatus(code[mainTokenIndex - 1]) == False) and (singleType != "void"):
                 raise Exception(f"Unary operator input value cannot be uninitialised!\nUninitialised variable: {code[mainTokenIndex - 1]}")
             
             # if singleInput starts with "#":
             arrayLen = -1
             if singleInput.startswith("#"):
                 # fix type
-                if not(singleType.endswith("*")):
+                if not(singleType.endswith("*")) and (singleType != "void"):
                     singleType += "*"
                 # get array length
                 arrayIndex = arrNames.index(code[mainTokenIndex - 1])

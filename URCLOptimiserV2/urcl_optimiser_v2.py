@@ -11018,7 +11018,7 @@ def ADDLOD(code: list):
                         success = True
                         return code, success
             
-                elif line2.startswith("."):
+                elif line2[0].startswith("."):
                     break
                 
                 elif line2[0] in branches:

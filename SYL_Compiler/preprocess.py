@@ -480,7 +480,7 @@ def preprocess(code: list):
         elif (token == "}") and asm:
             asm = False
         
-        if (not asm) and (token not in operators) and (token not in varNames) and (token not in funcNames2) and (token not in arrNames) and (token not in types) and (not (token[: 1].isnumeric())) and (not(token.startswith(("'", '"')))) and (token not in builtins) and (token not in ("in", "out")) and (not(token.startswith("%"))):
+        if (not asm) and (token not in operators) and (token not in varNames) and (token not in funcNames2) and (token not in arrNames) and (token not in types) and (not (token[: 1].isnumeric())) and (not(token.startswith(("'", '"')))) and (token not in builtins) and (token not in ("in", "out", "sizeof")) and (not(token.startswith("%"))):
             
             if not token.startswith(tuple(varNames + funcNames2 + arrNames)):
                 raise Exception(f"Unrecognised or undefined token: {token}")
@@ -540,6 +540,8 @@ def preprocess(code: list):
         return code, funcMapNames, funcMapLocations, funcNames, funcNames2
     
     code, funcMapNames, funcMapLocations, funcNames, funcNames2 = removeUselessFunc(code, funcMapNames, funcMapLocations, funcNames, funcNames2)
+    
+    funcNames3 = [i[0] for i in funcNames]
     
     # insert 0 into empty return statements
     index = 0
@@ -670,17 +672,24 @@ def preprocess(code: list):
                                 createdVars = []
                                 oldFuncNames = [] # list of old func names
                                 newFuncNames = [] # list of new func names
+                                oldvarNames = varNames.copy()
                                 for i, token69 in enumerate(inline):
                                     #token69 = token69
                                     while token69.count("___"):
                                         
                                     
                                         if token69 in varNames:
-                                            inline[i] = token69[: token69.index("___")] + inlineScope
-                                            if token69[: token69.index("___")] + inlineScope not in varNames:
-                                                varNames.append(token69[: token69.index("___")] + inlineScope)
-                                                varNames2.append(token69[: token69.index("___")])
-                                                variableTypes.append(variableTypes[varNames.index(token69)])
+                                            num = 0
+                                            while True:
+                                                inline[i] = token69[: token69.index("___")] + str(num) + inlineScope
+                                                
+                                                if token69[: token69.index("___")] + str(num) + inlineScope not in oldvarNames:
+                                                    varNames.append(token69[: token69.index("___")] + str(num) + inlineScope)
+                                                    varNames2.append(token69[: token69.index("___")] + str(num))
+                                                    variableTypes.append(variableTypes[varNames.index(token69)])
+                                                    break
+                                                else:
+                                                    num += 1
                                             break
                                         elif token69 in funcNames3:
                                             if i != 0:
@@ -721,13 +730,31 @@ def preprocess(code: list):
                                     if inline[i] in oldFuncNames:
                                         inline[i] = newFuncNames[oldFuncNames.index(inline[i])]
                                 
-                                # replace "return" with ["newVar", "="] in inline
+                                # replace "return" with ["newVar", "=", "(", returnType, ")", "("] in inline
+                                # then insert ")" at end of line
                                 i = 0
                                 while i < len(inline):
                                     token69 = inline[i]
                                     if token69 == "return":
                                         inline.insert(i, tempVar)
                                         inline[i + 1] = "="
+                                        inline.insert(i + 2, "(")
+                                        inline.insert(i + 3, returnType)
+                                        inline.insert(i + 4, ")")
+                                        inline.insert(i + 5, "(")
+                                        
+                                        i2 = i + 5
+                                        EOF = False
+                                        while inline[i2] not in (";", "}"):
+                                            i2 += 1
+                                            if i2 > len(inline):
+                                                EOF = True
+                                                break
+                                            
+                                        if EOF:
+                                            inline.append(")")
+                                        else:
+                                            inline.insert(i2 - 1, ")")
                                     i += 1
                                 
                                 # append ["del", "var", ";"] for all vars in createdVars
@@ -747,8 +774,20 @@ def preprocess(code: list):
                                         i = 0
                                         break
                                 
+                                # find end of func call
+                                i3 = index + 1
+                                bad = 0
+                                while True:
+                                    if (code[i3] == ")") and (bad == 1):
+                                        break
+                                    elif code[i3] == ")":
+                                        bad -= 1
+                                    elif code[i3] == "(":
+                                        bad += 1
+                                    i3 += 1
+                                
                                 # replace original func call with newVar
-                                code = code[: index + 1] + [tempVar] + code[index + 1: ][code[index + 1: ].index(")") + 1: ]
+                                code = code[: index + 1] + [tempVar] + code[i3 + 1: ]
                                 
                                 # find end of line for func call and del the tempVar
                                 code.insert(index + 1 + code[index + 1: ].index(";") + 1, ";")
