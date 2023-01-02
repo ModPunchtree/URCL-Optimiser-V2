@@ -9,7 +9,7 @@ code = f.read()
 f.close()
 
 
-code, optimisationCount = optimiseURCL(code, 100000, 0)
+code, optimisationCount = optimiseURCL(code, maxCycles=100000, M0=0, MAXBLOCKSIZE=1000, compiled=True)
 
 #BITS = 16
 #MINREG = 25

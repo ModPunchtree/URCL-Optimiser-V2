@@ -2533,7 +2533,10 @@ def pointlessWrites(code: list, MINREG: int):
             for index, line in enumerate(code):
                 if line[0] in write1:
                     if line[1] == reg:
-                        code[index] = [""]
+                        if line[0] in ("HRSR", "HPOP", "POP"):
+                            pass
+                        else:
+                            code[index] = [""]
             
             code, success2 = removeEmptyLines(code)
             success |= success2
@@ -2806,8 +2809,213 @@ def fixMOVIMM(code: list):
     
     return code, success
 
+### HRSR HSAV
+def HRSRHSAV(code: list):
+    
+    branches = (
+        "BGE",
+        "JMP",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BOD",
+        "BEV",
+        "BLE",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CAL",
+        "RET",
+        "BRC",
+        "BNC",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE",
+        "HCAL",
+        "HRET"
+    )
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "HPOP",
+        "HRSR",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] == "HRSR":
+            reg = line[1]
+            for index2, line2 in enumerate(code[index + 1: ]):
+                if line2[0] == "HSAV":
+                    if line2[1] == reg:
+                        code[index] = [""]
+                        code[index + 1 + index2] = [""]
+                        break
+                    else:
+                        break
+                elif line2[0] == "HRSR":
+                    break
+                elif line2[0].startswith("."):
+                    break
+                elif line2[0] in branches:
+                    break
+                elif line2[0] in write1:
+                    if line2[1] == reg:
+                        break
+                
+                if line2[0] in read2and3:
+                    if line2[2] == reg:
+                        break
+                    elif line2[3] == reg:
+                        break
+                elif line2[0] in read2:
+                    if line2[2] == reg:
+                        break
+                elif line2[0] in read1and2and3:
+                    if line2[1] == reg:
+                        break
+                    elif line2[2] == reg:
+                        break
+                    elif line2[3] == reg:
+                        break
+                elif line2[0] in read1:
+                    if line2[1] == reg:
+                        break
+                elif line2[0] in read1and2:
+                    if line2[1] == reg:
+                        break
+                    elif line2[2] == reg:
+                        break
+    
+    code, success = removeEmptyLines(code)
+    
+    return code, success
+
 ## Optimsation By Emulation
-def OBE(code: list, BITS: int, MINREG: int, MINHEAP: int, maxCycles = 500, M0 = -1):
+def OBE(code: list, BITS: int, MINREG: int, MINHEAP: int, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20):
 
     # search code for codeblocks
     # a codeblock must:
@@ -2836,8 +3044,8 @@ def OBE(code: list, BITS: int, MINREG: int, MINHEAP: int, maxCycles = 500, M0 = 
         pass
     
     # try snippets of code
-    for loop in range(len(code) - 1):
-        snippetLength = len(code) - 1 - loop
+    for loop in range(MAXBLOCKSIZE):
+        snippetLength = loop
         
         if snippetLength != 1:
             for index in range(len(code[: -(snippetLength - 1)])):

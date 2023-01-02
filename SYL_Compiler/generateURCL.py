@@ -772,14 +772,15 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
         # evict each register in turn
         for i in range(MINREG):
             var = registerStack[owners.index(funcName)][i]
-            func = getFuncFromVar(var)
-            length = len(URCL)
-            
-            evictReg(f"R{i + 1}", funcName)
-            
-            # get rid of the generated code if var is local
-            if (func == funcName) and (length != len(URCL)):
-                URCL.pop()
+            if var:
+                func = getFuncFromVar(var)
+                length = len(URCL)
+                
+                evictReg(f"R{i + 1}", funcName)
+                
+                # get rid of the generated code if var is local
+                if (func == funcName) and (length != len(URCL)):
+                    URCL.pop()
         
         return # return nothing
     

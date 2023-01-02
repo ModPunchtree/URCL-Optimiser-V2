@@ -9,21 +9,7 @@ uint ack(uint m, uint n) {
     }
 }
 
-void printStr(char *p) {
-    char *index = 0;
-
-    while (*(p+index) != 0) {
-        out(%text, *(p+index));
-        index += 1;
-    }
-}
-
-void main() {
-    char string = {"Ack(6, 9) = ", 0};
-    printStr(string);
-
-    out(%numb, ack(6, 9));
-}
+ack(1, 2);
 
 
 

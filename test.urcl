@@ -1,50 +1,67 @@
 BITS 16
-MINREG 4
-@DEFINE a R1
-@DEFINE b R2
-@DEFINE c R3
-@DEFINE result R4
-.loop
-IN a %FIXED
-OUT %FIXED a
-OUT %TEXT '/'
-IN b %FIXED
-OUT %FIXED b
-OUT %TEXT '='
-CAL .fixed_div
-OUT %FIXED result
-OUT %TEXT '\n'
-JMP .loop
-
-.fixed_div
-XOR c a b
-AND c c 0x8000
-PSH c
-AND a a 0x7FFF
-AND b b 0x7FFF
-LSH a a
-DIV result a b
-MOD a a b
-BSL a a 1
-BSL result result 1
-DIV c a b
-ADD result result c
-MOD a a b
-BSL a a 1
-BSR b b 1
-BSL result result 2
-DIV c a b
-ADD result result c
-MOD a a b
-BSL a a 3
-BSR b b 1
-BSL result result 4
-DIV c a b
-ADD result result c
-MOD a a b
-LSH a a
-SETG a a b
-SUB result result a
-POP c
-OR result result c
-RET
+MINREG 25
+MINHEAP 3
+MINSTACK 0 // does not use software stack
+JMP .ack___global_FUNCEND
+.ack___global_FUNCSTART
+SETE R3 R1 0
+MOV R3 R3
+STR M0 R1
+STR M1 R2
+BRZ .ifBody_END_0 R3
+LOD R25 M1
+ADD R24 R25 1
+MOV R1 R24
+HRET
+JMP .else_END_0
+.ifBody_END_0
+LOD R25 M1
+SETE R24 R25 0
+MOV R24 R24
+STR M1 R25
+BRZ .elseifBody_END_1 R24
+LOD R25 M0
+SUB R24 R25 1
+HSAV R25
+LOD R23 M1
+HSAV R23
+IMM R2 1
+MOV R1 R24
+HCAL .ack___global_FUNCSTART
+HRSR R2
+HRSR R3
+STR M2 R1
+HRET
+JMP .else_END_0
+.elseifBody_END_1
+LOD R25 M0
+SUB R24 R25 1
+LOD R23 M1
+SUB R22 R23 1
+HSAV R25
+HSAV R23
+HSAV R24
+MOV R2 R22
+MOV R1 R25
+HCAL .ack___global_FUNCSTART
+HRSR R2
+HRSR R3
+HRSR R4
+HSAV R4
+HSAV R3
+STR M2 R2
+MOV R2 R1
+LOD R1 M2
+HCAL .ack___global_FUNCSTART
+HRSR R2
+HRSR R3
+STR M2 R1
+HRET
+.else_END_0
+IMM R1 0
+HRET
+.ack___global_FUNCEND
+IMM R2 2
+IMM R1 1
+HCAL .ack___global_FUNCSTART
+OUT %NUMB R1
