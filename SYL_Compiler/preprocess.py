@@ -592,14 +592,29 @@ def preprocess(code: list):
                                 
                                 # get list of callerInputs
                                 i = index + 3 # skip (
-                                i2 = 0
+                                i2 = numberOfInputs
                                 callerInputs = []
-                                for i2 in range(numberOfInputs):
-                                    if code[i + i2 - 1] != ")":
-                                        callerInputs.append(code[i + i2])
-                                        i += 1 # skip comma
-                                    else:
-                                        break
+                                while i2:
+                                    i3 = i
+                                    temp = []
+                                    bracket = 0
+                                    while True:
+                                        if (code[i3] in (",", ")")) and (bracket == 0):
+                                            callerInputs.append(temp.copy())
+                                            i2 -= 1
+                                            break
+                                        
+                                        elif code[i3] == ")":
+                                            temp.append(code[i3])
+                                            bracket -= 1
+                                            i3 += 1
+                                        elif code[i3] == "(":
+                                            temp.append(code[i3])
+                                            bracket += 1
+                                            i3 += 1
+                                        else:
+                                            temp.append(code[i3])
+                                            i3 += 1
                                 
                                 # get list of functionInputs
                                 functionInputs = funcNames[funcNames3.index(token)][3]
@@ -615,7 +630,9 @@ def preprocess(code: list):
                                                     y = len(functionInputs[j])
                                                     x = j
                                         
-                                        inline[i] = callerInputs[x]
+                                        inline = inline[: i] + callerInputs[x] + inline[i + 1: ]
+                                        
+                                        #inline[i] = callerInputs[x]
                                 
                                 # find current scope
                                 # index + 1 is the index that the scope should be found for
@@ -722,8 +739,13 @@ def preprocess(code: list):
                                             token69 = token69[: : -1]
                                     
                                     if i > 0:
-                                        if (inline[i] in varNames) and (code[i - 1] in types):
+                                        if (inline[i] in varNames) and (inline[i - 1] in types):
                                             createdVars.append(inline[i])
+                                        elif (inline[i] in varNames) and (inline[i - 1] == "del"):
+                                            createdVars.pop(createdVars.index(inline[i]))
+                                            stop = 1
+                                            stop = 2
+                                            stop = 3
                                 
                                 # replace moved function calls with new function names
                                 for i in range(len(inline)):

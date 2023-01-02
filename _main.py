@@ -12,9 +12,9 @@ f.close()
 code, optimisationCount = optimiseURCL(code, 100000, 0)
 
 #BITS = 16
-#MINREG = 4
-#HEAPTotal = 65536
-#cycleLimit = 1000
+#MINREG = 25
+#HEAPTotal = 14
+#cycleLimit = 100000
 #code = optimisationByEmulation(code[5: ], BITS, MINREG, HEAPTotal, cycleLimit)
 
 result = ""

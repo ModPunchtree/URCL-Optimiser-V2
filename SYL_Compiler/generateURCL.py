@@ -355,11 +355,11 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 initialisedHeap[heapIndex] = False
             
         else:
-            raise Exception(f"Tried to delete undefined function: {varName}")
+            raise Exception(f"Tried to delete undefined variable: {varName}")
             
         return # nothing
     
-    def createVar(varName: str, varType: str, arrNames: tuple, getFuncFromVar, owners):
+    def createVar(varName: str, varType: str):
         
         if varName.startswith(tuple(arrNames)):
             raise Exception(f"Tried to define array: {varName} as a variable")
@@ -565,7 +565,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             else:
                 num += 1
         
-        createVar(tempVar, tempType, arrNames, getFuncFromVar, owners)
+        createVar(tempVar, tempType)
         
         return tempVar # return name of new TEMP
     
@@ -825,7 +825,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
         elif token in varTypes:
             name = code[mainTokenIndex - 1]
 
-            createVar(name, token, arrNames, getFuncFromVar, owners)
+            createVar(name, token)
             code.pop(mainTokenIndex)
         
         # function (function call)
@@ -1036,7 +1036,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                         evictReg(f"R{regIndex + 1}", currentFuncName)
                         
                         # create variable (it should go into the evicted reg)
-                        createVar(varName, code[mainTokenIndex], arrNames, getFuncFromVar, owners)
+                        createVar(varName, code[mainTokenIndex])
                         
                         # HPOP regName
                         URCL.append(["HPOP", f"R{regIndex + 1}"]) # put value into newly created var
@@ -1046,7 +1046,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                         
                     else:
                         # create variable
-                        createVar(varName, code[mainTokenIndex], arrNames, getFuncFromVar, owners) # defines left to right, R1 to Rx
+                        createVar(varName, code[mainTokenIndex]) # defines left to right, R1 to Rx
                         
                         # invalid fetch into registers (hopefully is R1)
                         fetchVar(varName, True)

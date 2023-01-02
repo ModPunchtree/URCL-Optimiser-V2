@@ -262,9 +262,14 @@ def distinguisher(code: list, varNames: list, funcNames: list, arrNames: list, f
     # find UNARY* - if left of "=" then turn it into UNARY*Assign
     for index, token in enumerate(code):
         if token == "UNARY*":
-            if index + 2 < len(code):
-                if code[index + 2] == "=":
+            index2 = index
+            while index2 < len(code):
+                if code[index2] == "=":
                     code[index] = "UNARY*Assign"
+                    break
+                elif code[index2] in (";", "}"):
+                    break
+                index2 += 1
     
     return code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, variableTypes, functionTypes, arrayTypes, arrayLengths
 

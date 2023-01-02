@@ -264,7 +264,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
     cycles = 0
     while PC != len(codeBlock):
         
-        if (len(callStack) > 32) or (len(saveStack) > 2**12) or (len(dataStack) > 32):
+        if (len(callStack) > 32) or (len(saveStack) > 32) or (len(dataStack) > 32):
             raise Exception("Hardware stacks overflowed")
         
         if cycles >= cycleLimit:
