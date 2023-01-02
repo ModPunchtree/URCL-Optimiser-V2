@@ -11101,7 +11101,10 @@ def inliner(code: list):
             
             while index2 < len(code):
                 line2 = code[index2]
-                if line2[0].startswith("."):
+                if line2 == line:
+                    bad = True
+                    break
+                elif line2[0].startswith("."):
                     bad = True
                     break
                 elif line2[0] in ("HLT", "JMP", "RET", "HRET"):
