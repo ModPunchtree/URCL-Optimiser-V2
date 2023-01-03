@@ -245,16 +245,16 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
                     num = int(token[1: ], 0)
                     codeBlock[index1][index2] = f"{num + M0}"
 
-    initialState_REG = [0 for i in range(REGTotal + 1)]
-    initialState_HEAP = [0 for i in range(HEAPTotal)]
+    initialState_REG = [f"R{i}" for i in range(REGTotal + 1)]
+    initialState_HEAP = [f"M{i}" for i in range(HEAPTotal)]
     callStack = []
     dataStack = []
     saveStack = []
 
     REG = initialState_REG.copy()
     HEAP = initialState_HEAP.copy()
-    initialisedREG = [False for i in range(REGTotal + 1)]
-    initialisedHEAP = [False for i in range(HEAPTotal)]
+    initialisedREG = [True for i in range(REGTotal + 1)]
+    initialisedHEAP = [True for i in range(HEAPTotal)]
     
     resultInstructions = []
     
@@ -632,18 +632,175 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
         raise Exception("Callstack cannot have values leftover")
 
     # generate result
-    for index in range(len(REG)):
-        if initialisedREG[index]:
-            resultInstructions.append(["IMM", f"R{index}", str(REG[index])])
-    for index in range(len(HEAP)):
-        if initialisedHEAP[index]:
-            resultInstructions.append(["STR", f"M{index}", str(HEAP[index])])
     for index in range(len(dataStack)):
         dataStack[index]
         resultInstructions.append(["HPSH", str(dataStack[index])])
     for index in range(len(saveStack)):
         saveStack[index]
         resultInstructions.append(["HSAV", str(saveStack[index])])
+    
+    # make list of unsolved registers and heap locations
+    solvedRegisters = [False for i in range(len(REG))]
+    solvedHeap = [False for i in range(len(HEAP))]
+    solvedRegisters[0] = True
+    
+    # start with registers R1 -> Rx then heap M0 -> Mx
+    dependencyStack = []
+
+    i = 1
+    while (False in solvedRegisters) or (False in solvedHeap):
+
+        if i >= (len(REG) + len(HEAP)):
+            i = 1
+
+        if i < len(REG):
+            if solvedRegisters[i] == False:
+            
+                # this is a register
+
+                initalRegName = f"R{i}"
+                value = str(REG[i])
+
+                if value == initalRegName:
+                    # mark register as solved
+                    solvedRegisters[i] = True
+                    i += 1
+                    dependencyStack = []
+
+                elif value.startswith(("R", "M")):
+                    # depends on another register or heap
+                    
+                    # find if the original register is dependent on another register/heap location
+                    dependent = False
+                    for j in range(len(REG)):
+                        if str(REG[j]) == initalRegName:
+                            dependent = True
+                            # set index to solve the dependency
+                            i = j
+                            # if this register is already in dependencyStack, crash
+                            if initalRegName in dependencyStack:
+                                raise Exception("bad dependency")
+                            # add reg to dependencyStack
+                            dependencyStack.append(initalRegName)
+                            break
+                    for j in range(len(HEAP)):
+                        if str(HEAP[j]) == initalRegName:
+                            dependent = True
+                            # set index to solve the dependency
+                            i = j + len(REG)
+                            # if this register is already in dependencyStack, crash
+                            if initalRegName in dependencyStack:
+                                raise Exception("bad dependency")
+                            # add reg to dependencyStack
+                            dependencyStack.append(initalRegName)
+                            break
+                    
+                    if not dependent:
+                        # this reg can be successfully solved
+                        
+                        if value.startswith("R"):
+                            resultInstructions.append(["MOV", initalRegName, value])
+                            # mark register as solved
+                            solvedRegisters[i] = True
+                            i += 1
+                            dependencyStack = []
+                        elif value.startswith("M"):
+                            resultInstructions.append(["LOD", initalRegName, value])
+                            # mark register as solved
+                            solvedRegisters[i] = True
+                            i += 1
+                            dependencyStack = []
+                        else:
+                            raise Exception("oppsie")
+
+                else:
+                    resultInstructions.append(["IMM", f"R{i}", value])
+                    # mark register as solved
+                    solvedRegisters[i] = True
+                    i += 1
+                    dependencyStack = []
+                    
+            else:
+                # already solved
+                i += 1
+
+        else:
+            if solvedHeap[i - len(REG)] == False:
+            
+                # this is a heap location
+
+                initalHeapName = f"M{i - len(REG)}"
+                value = str(HEAP[i - len(REG)])
+
+                if value == initalHeapName:
+                    # mark heap as solved
+                    solvedHeap[i - len(REG)] = True
+                    i += 1
+                    dependencyStack = []
+
+                elif value.startswith(("R", "M")):
+                    # depends on another register or heap
+                    
+                    # find if the original heap location is dependent on another register/heap location
+                    dependent = False
+                    for j in range(len(REG)):
+                        if str(REG[j]) == initalHeapName:
+                            dependent = True
+                            # set index to solve the dependency
+                            i = j
+                            # if this heap location is already in dependencyStack, crash
+                            if initalHeapName in dependencyStack:
+                                raise Exception("bad dependency")
+                            # add heap to dependencyStack
+                            dependencyStack.append(initalHeapName)
+                            break
+                    for j in range(len(HEAP)):
+                        if str(HEAP[j]) == initalHeapName:
+                            dependent = True
+                            # set index to solve the dependency
+                            i = j + len(REG)
+                            # if this heap location is already in dependencyStack, crash
+                            if initalHeapName in dependencyStack:
+                                raise Exception("bad dependency")
+                            # add heap to dependencyStack
+                            dependencyStack.append(initalHeapName)
+                            break
+                    
+                    if not dependent:
+                        # this heap location can be successfully solved
+                        
+                        if value.startswith("R"):
+                            resultInstructions.append(["STR", initalHeapName, value])
+                            # mark heap as solved
+                            solvedHeap[i - len(REG)] = True
+                            i += 1
+                            dependencyStack = []
+                        elif value.startswith("M"):
+                            resultInstructions.append(["CPY", initalHeapName, value])
+                            # mark heap as solved
+                            solvedHeap[i - len(REG)] = True
+                            i += 1
+                            dependencyStack = []
+                        else:
+                            raise Exception("oppsie")
+
+                else:
+                    resultInstructions.append(["STR", f"M{i - len(REG)}", value])
+                    # mark heap location as solved
+                    solvedHeap[i - len(REG)] = True
+                    i += 1
+                    dependencyStack = []
+            else:
+                # already solved
+                i += 1
+    
+    # old register and heap generating code (doesn't handle dependencies)
+    """for index in range(len(REG)):
+        if initialisedREG[index]:
+            resultInstructions.append(["IMM", f"R{index}", str(REG[index])])
+    for index in range(len(HEAP)):
+        if initialisedHEAP[index]:
+            resultInstructions.append(["STR", f"M{index}", str(HEAP[index])])"""
 
     if appendHLT:
         resultInstructions.append(["HLT"])

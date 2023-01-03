@@ -854,20 +854,28 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             inputVars = code[mainTokenIndex + 1 - numberOfInputs: mainTokenIndex + 1].copy()
             
             if recursive:
-                # fetch and push all local variables onto the save stack HSAV
+                # fetch and push all local variables onto the data stack HPSH
                 
                 # get list of local variables + array values
                 localVars = createListOfLocals()
                 
-                # fetch each value individually and push onto save stack
+                # fetch each value individually and push onto data stack
                 for var in localVars:
                     # do not save temp vars that are inputs to the func
                     if not(var.startswith("__TEMP") and (var in inputVars)):
                         # fetch var
                         regName = fetchVar(var)
                         
-                        # HSAV regName
-                        URCL.append(["HSAV", regName])
+                        # only add instructions if the previous instruction isn't popping the same thing (not perfect)
+                        if URCL[-1: ]:
+                            if URCL[-1] == ["HPOP", regName]:
+                                URCL.pop()
+                            else:
+                                # HPSH regName
+                                URCL.append(["HPSH", regName])
+                        else:
+                            # HPSH regName
+                            URCL.append(["HPSH", regName])
             
             # fetch the input vars for the function (right to left, Rx to R1) (HPSH first before registers)
             inputIndex = numberOfInputs - 1
@@ -944,11 +952,11 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 regIndex = MINREG - 1 - i
                 if registerStack[owners.index(currentFuncName)][regIndex] != "":
                     
-                    # find if recursive and var being evicted is being HSAV + HRET
+                    # find if recursive and var being evicted is being HPSH + HPOP
                     if recursive:
                         varName = registerStack[owners.index(currentFuncName)][regIndex]
                         if varName in localVars:
-                            # mark var as invalid as it will be HRSR later
+                            # mark var as invalid as it will be HPOP later
                             initialisedRegList[owners.index(currentFuncName)][regIndex] = False
                     
                     evictReg(f"R{regIndex + 1}", currentFuncName)
@@ -970,7 +978,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             initialisedRegList[owners.index(currentFuncName)][0] = True
             
             if recursive:
-                # fetch each saved local var and overwrite it with HRSR restoring the local vars (using earlier list backwards)
+                # fetch each saved local var and overwrite it with HPOP restoring the local vars (using earlier list backwards)
     
                 # for every var in localVars backwards
                 for var in localVars[: : -1]:
@@ -979,8 +987,8 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                         # fetch Var (invalid)
                         regName = fetchVar(var, invalid = True)
                     
-                        # HRSR regName
-                        URCL.append(["HRSR", regName])
+                        # HPOP regName
+                        URCL.append(["HPOP", regName])
                     
                         # mark reg as initialised
                         initialisedRegList[owners.index(currentFuncName)][int(regName[1:], 0) - 1] = True

@@ -9,7 +9,7 @@ uint ack(uint m, uint n) {
     }
 }
 
-ack(1, 2);
+out(%numb, ack(6, 9));
 
 
 

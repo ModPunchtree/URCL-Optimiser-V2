@@ -1615,7 +1615,7 @@ def partialImmediateFolding(code: list, BITS: int):
                             answer = ["LOD", line[1], line[2]]
                         elif line[2].startswith("M"):
                             num = int(line[2][1: ], 0)
-                            answer = ["LOD", line[1], f"M{num + imm2}"]
+                            answer = ["LOD", line[1], f"M{num + imm3}"]
                     elif type(imm2) == int:
                         if imm2 == 0:
                             answer = ["LOD", line[1], line[3]]
