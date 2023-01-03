@@ -107,6 +107,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
         "NOR",
         "SUB",
         "MOV",
+        "IN",
         "IMM",
         "LSH",
         "INC",
@@ -378,6 +379,9 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
                 answer = True
             case "MOV":
                 answer = operands[2]
+            case "IN":
+                resultInstructions.append(line)
+                answer = line[1]
             case "IMM":
                 answer = operands[2]
             case "LSH":
@@ -617,6 +621,8 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
         elif instruction == "HRET":
             PC = answer
             branch = True
+        elif instruction == "IN":
+            pass
         else:
             raise Exception(f"Unhandled writeback instruction: {instruction}")
 
