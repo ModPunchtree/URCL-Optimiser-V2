@@ -168,7 +168,9 @@ def preprocess(code: list):
     for index, token in enumerate(code[: -2]):
         if token in types:
             name = code[index + 1]
-            if code[index + 2] in ("=", ";", ",", ")"):
+            if name == ")":
+                pass # typeCast
+            elif code[index + 2] in ("=", ";", ",", ")"):
                 varNames.append(name + "___" + "___".join(filter(foo, scope)))
                 varNames2.append(name)
                 variableTypes.append(token)
@@ -210,9 +212,6 @@ def preprocess(code: list):
                     raise Exception(f"Array length must be a number when defining an array")
                 arrayLengths.append(int(code[index + 3], 0))
                 arrayTypes.append(token)
-            
-            elif name == ")":
-                pass # typeCast
             
             else:
                 raise Exception(f"Unrecognised tokens: {code[index: index + 3]}")
@@ -602,6 +601,7 @@ def preprocess(code: list):
                                         if (code[i3] in (",", ")")) and (bracket == 0):
                                             callerInputs.append(temp.copy())
                                             i2 -= 1
+                                            i = i3 + 1
                                             break
                                         
                                         elif code[i3] == ")":
@@ -631,7 +631,7 @@ def preprocess(code: list):
                                                     x = j
                                         
                                         inline = inline[: i] + callerInputs[x] + inline[i + 1: ]
-                                        
+                                        stop = 1
                                         #inline[i] = callerInputs[x]
                                 
                                 # find current scope
@@ -685,6 +685,8 @@ def preprocess(code: list):
                                 varNames2.append(tempVar[: tempVar.index("___")])
                                 variableTypes.append(returnType)
                                 
+                                callerInputs = [i[0] for i in callerInputs]
+                                
                                 # create list of all vars created in inline (rename scopes too?)
                                 createdVars = []
                                 oldFuncNames = [] # list of old func names
@@ -694,8 +696,9 @@ def preprocess(code: list):
                                     #token69 = token69
                                     while token69.count("___"):
                                         
-                                    
-                                        if token69 in varNames:
+                                        if token69 in callerInputs:
+                                            break
+                                        elif token69 in varNames:
                                             num = 0
                                             while True:
                                                 inline[i] = token69[: token69.index("___")] + str(num) + inlineScope
@@ -743,9 +746,6 @@ def preprocess(code: list):
                                             createdVars.append(inline[i])
                                         elif (inline[i] in varNames) and (inline[i - 1] == "del"):
                                             createdVars.pop(createdVars.index(inline[i]))
-                                            stop = 1
-                                            stop = 2
-                                            stop = 3
                                 
                                 # replace moved function calls with new function names
                                 for i in range(len(inline)):
@@ -849,7 +849,7 @@ def preprocess(code: list):
                 i += 1
     
     # convert non array definitions into UNARY*
-    for index, token in enumerate(code):
+    for index, token in enumerate(code[: -1]):
         if code[index + 1] == "[":
             if code[index - 1] not in types:
                 tokenList = []
@@ -865,11 +865,6 @@ def preprocess(code: list):
                     tokenList.append(code[index + i])
                     i += 1
                 code = code[: index].copy() + ["*", "("] + [code[index]] + ["+", "("] + tokenList.copy() + [")", ")"] + code[index + i + 1: ]
-                stop = 1
-                stop = 1
-                stop = 1
-                stop = 1
-                
     
     return code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, variableTypes, functionTypes, arrayTypes, arrayLengths
 

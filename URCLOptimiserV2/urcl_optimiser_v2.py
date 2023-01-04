@@ -1117,7 +1117,7 @@ def fullImmediateFolding(code: list, BITS: int):
                             answer = [""]
                     
                     case "BRZ":
-                        if imm2:
+                        if imm2 == 0:
                             answer = ["JMP", line[1]]
                         else:
                             answer = [""]

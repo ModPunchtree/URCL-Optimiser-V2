@@ -279,7 +279,10 @@ def shuntingYard(code: list, varNames: list, funcNames: list, arrNames: list, fu
     while code:
         token = code.pop(0)
         
-        if (token[0].isnumeric()) or (token.startswith(tuple(varNames))) or (token.startswith(tuple(arrNames))) or (token.startswith(("'", "%"))): # number or var or array name or char or %port
+        if code[: 2] == ["input10___global", "="]:
+            stop = 1
+        
+        if (token[0].isnumeric()) or (token.startswith(tuple(varNames))) or (token.startswith(tuple(arrNames))) or ((token.startswith(("'", "%"))) and (len(token) > 1)): # number or var or array name or char or %port
             outputStack.append(token)
         
         elif token in operators:

@@ -1,69 +1,76 @@
-// set aside memory for dynamic allocation
-void mem[20];
-void allocation[20];
 
-// mark all dynamic allocation as free
-void index = 0;
-while (index < sizeof(mem)) {
-    allocation[index] = 0;
-    index += 1;
-}
+uint div88(uint input1, uint input2) {
+    uint pushed = (input1 ^ input2) & 32768;
 
-void malloc(uint size) {
-    //find free area in mem
-    uint currentSize = 0;
-    void index = 0;
-    while (currentSize < size) {
-        if (allocation[index]) {
-            currentSize = 0;
-        } else {
-            currentSize += 1;
-        }
-            index += 1;
-    }
-    //mark area as not free
-    while (currentSize) {
-        index -= 1;
-        allocation[index] = -1;
-        currentSize -= 1;
-    }
-    //return pointer
-    return(mem + index);
-}
+    input1 &= 32767;
+    input2 &= 32767;
 
-void free(void pointer, uint size) {
-    void index = pointer - mem;
-    // mark area as free
-    while (size) {
-        allocation[index] = 0;
-        index += 1;
-        size -= 1;
-    }
+    input1 <<= 1;
+
+    uint R4 = input1 / input2;
+
+    input1 %= input2;
+
+    input1 <<= 1;
+
+    R4 <<= 1;
+
+    uint R3 = input1 / input2;
+
+    R4 += R3;
+
+    input1 %= input2;
+
+    input1 <<= 1;
+
+    R4 <<= 2;
+
+    R3 = input1 / input2;
+
+    R4 += R3;
+
+    input1 %= input2;
+
+    input1 <<= 3;
+
+    input2 >>= 2;
+
+    R4 <<= 4;
+
+    R3 = input1 / input2;
+
+    R4 += R3;
+
+    input1 %= input2;
+
+    input1 <<= 1;
+
+    input1 = (uint)(input1 > input2);
+
+    R4 -= input1;
+
+    R3 = pushed;
+
+    R4 |= R3;
+
+    return R4;
+
 }
 
 void main() {
-    //two source strings
-    char string1 = {"This is ", 0};
-    char string2 = {"very unsafe", 0};
+    while (1) {
+        in(uint input1, %FIXED);
+        out(%FIXED, input1);
 
-    //get memory for new string
-    char *string3 = malloc(sizeof(string1) + sizeof(string2) - 1);
+        out(%TEXT, '/');
 
-    //write string1 into string3
-    char *index = 0;
-    while (string1[index]) {
-        string3[index] = string1[index];
-        index += 1;
+        in(uint input2, %FIXED);
+        out(%FIXED, input2);
+
+        out(%TEXT, '=');
+
+        out(%FIXED, div88(input1, input2));
+
+        out(%TEXT, '\n');
     }
-    //write string2 into string3
-    char *index2 = 0;
-    while (string2[index2]) {
-        string3[index] = string2[index2];
-        index += 1;
-        index2 += 1;
-    }
-    //mark end of string3 with 0
-    string3[index] = 0;
-
-    //string3 is now both strings concatenated
 }
