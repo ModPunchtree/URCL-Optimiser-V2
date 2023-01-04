@@ -230,7 +230,11 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             heap = heapStack[owners.index(funcName)]
             initialisedHeap = initialisedHeapList[owners.index(funcName)]
             
-            if varName in registers:
+            if varName in constantVars[owners.index(funcName)]:
+                # return value of const (empty string if undefined)
+                return constantValues[owners.index(funcName)][constantVars[owners.index(funcName)].index(varName)]
+            
+            elif varName in registers:
                 # update LRU
                 for i in range(MINREG):
                     LRU[i] += 1 # increment all other values by 1
@@ -308,7 +312,13 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
         heap = heapStack[owners.index(funcName)]
         initialisedHeap = initialisedHeapList[owners.index(funcName)]
         
-        if varName in registers:
+        if varName in constantVars[owners.index(currentFuncName)]:
+            # remove constant var from list of constants
+            index69 = constantVars[owners.index(currentFuncName)].index(varName)
+            constantVars[owners.index(currentFuncName)].pop(index69)
+            constantValues[owners.index(currentFuncName)].pop(index69)
+        
+        elif varName in registers:
             # get regIndex
             regIndex = registers.index(varName)
             
@@ -377,14 +387,23 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
         heap = heapStack[owners.index(funcName)]
         
         # check if var already defined
-        if (varName in registers) or (varName in heap) or ("[0]" + varName in heap):
+        if (varName in registers) or (varName in heap) or ("[0]" + varName in heap) or (varName in constantVars):
             raise Exception(f"Tried to define already defined variable: {varName}")
         
         # get reg and heap initialisation lists
         initialisedReg = initialisedRegList[owners.index(funcName)]
         initialisedHeap = initialisedHeapList[owners.index(funcName)]
         
-        if False: # "" in registers:
+        if varType.startswith("const"):
+            # add var to varNames and varTypes
+            varNames.append(varName)
+            variableTypes.append(varType)
+            
+            # do not add to heap or registers
+            constantVars[owners.index(funcName)].append(varName)
+            constantValues[owners.index(funcName)].append("") # starts uninitialised
+        
+        elif False: # "" in registers:
             # get regIndex
             regIndex = registers.index("")
             
@@ -744,7 +763,10 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             heap = heapStack[owners.index(funcName)]
             initialisedHeap = initialisedHeapList[owners.index(funcName)]
             
-            if varName in registers:
+            if varName in constantVars[owners.index(funcName)]:
+                return bool(constantValues[owners.index(funcName)][constantVars[owners.index(funcName)].index(varName)])
+            
+            elif varName in registers:
                 return initialisedReg[registers.index(varName)]
         
             elif varName in heap:
@@ -791,6 +813,9 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
     originalHeapLocations = [["" for i in range(MINREG)] for j in range(len(funcMapNames))]
     initialisedRegList = [[False for i in range(MINREG)] for j in range(len(funcMapNames))] # keeps track of which reg vars are initialised
     
+    constantVars = [[] for i in range(len(funcMapNames))]
+    constantValues = [[] for i in range(len(funcMapNames))]
+    
     heapStack = [[] for i in range(len(funcMapNames))]
     initialisedHeapList = [[] for i in range(len(funcMapNames))] # keeps track of which heap vars are initialised
     owners = funcMapNames.copy() # function name of who owns which register/heap/LRU in their respective stacks
@@ -810,9 +835,6 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
     mainTokenIndex = 0
     while mainTokenIndex < len(code):
         token = code[mainTokenIndex]
-        
-        if token == "string30___global":
-            stop = 1
         
         # raw number or char
         if (token[0].isnumeric()) or (token.startswith("'")):
@@ -871,11 +893,17 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                             if URCL[-1] == ["HPOP", regName]:
                                 URCL.pop()
                             else:
+                                # do not save value if value is const type
+                                type1 = getType(var)
+                                if not((type1.startswith("const")) or (var.startswith("'")) or (var[0].isnumeric())):
+                                    # HPSH regName
+                                    URCL.append(["HPSH", regName])
+                        else:
+                            # do not save value if value is const type
+                            type1 = getType(var)
+                            if not((type1.startswith("const")) or (var.startswith("'")) or (var[0].isnumeric())):
                                 # HPSH regName
                                 URCL.append(["HPSH", regName])
-                        else:
-                            # HPSH regName
-                            URCL.append(["HPSH", regName])
             
             # fetch the input vars for the function (right to left, Rx to R1) (HPSH first before registers)
             inputIndex = numberOfInputs - 1
@@ -987,11 +1015,14 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                         # fetch Var (invalid)
                         regName = fetchVar(var, invalid = True)
                     
-                        # HPOP regName
-                        URCL.append(["HPOP", regName])
+                        # do not save value if value is const type
+                        type1 = getType(var)
+                        if not((type1.startswith("const")) or (var.startswith("'")) or (var[0].isnumeric())):
+                            # HPOP regName
+                            URCL.append(["HPOP", regName])
                     
-                        # mark reg as initialised
-                        initialisedRegList[owners.index(currentFuncName)][int(regName[1:], 0) - 1] = True
+                            # mark reg as initialised
+                            initialisedRegList[owners.index(currentFuncName)][int(regName[1:], 0) - 1] = True
             
             # insert new TEMP into list of tokens
             code[mainTokenIndex] = tempVar
@@ -1145,7 +1176,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 if targetType.startswith("const"):
                     targetType = targetType[5: ]
                 # type check
-                if (arrayType != targetType) and (targetType != "void") and (arrayType != "void"):
+                if (arrayType != targetType) and (targetType != "void") and (arrayType != "void") and (arrayType != f"const{targetType}"):
                     raise Exception(f"Array definition {name} contains an element with the wrong type\nExpected type: {arrayType}\nFound type: {targetType}")
                 
                 # get target array index and its heap index
@@ -1189,16 +1220,20 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             if (not offsetType.endswith("*")) and (offsetType != "void"):
                 raise Exception(f"Array index is not a pointer type\nExpected type: {arrayType}*\nFound type: {offsetType}")
             
+            if arrayType.startswith("const"):
+                arrayType2 = arrayType[5: ]
+            else:
+                arrayType2 = arrayType
             # main type check
-            if (arrayType != offsetType[: -1]) and (arrayType != "void") and (offsetType != "void"):
-                raise Exception(f"Array index type does not match array type\nExpected type: {arrayType}*\nFound type: {offsetType}")
+            if (arrayType2 != offsetType[: -1]) and (arrayType != "void") and (offsetType != "void"):
+                raise Exception(f"Array index type does not match array type\nExpected type: {arrayType2}*\nFound type: {offsetType}")
             
             # delete TEMP offset
             if code[mainTokenIndex - 1].startswith("__TEMP"):
                 delete(code[mainTokenIndex - 1])
             
             # create TEMP
-            tempVar = createTEMP(arrayType)
+            tempVar = createTEMP(arrayType2)
             regName2 = fetchVar(tempVar, invalid = True)
             
             # LLOD regName2 arrayLocation regName
@@ -1628,7 +1663,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 expectedType = getType(code[mainTokenIndex - 2])
                 
                 # const type check
-                if expectedType.startswith("const") and not(inputType.startswith("const")):
+                if (expectedType.startswith("const")) and (not(inputType.startswith("const"))) and (getInitialisationStatus(code[mainTokenIndex - 2])):
                     raise Exception(f"Cannot overwrite constant type variable: {code[mainTokenIndex - 2]}")
                 
                 # type check
@@ -1639,11 +1674,18 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 if code[mainTokenIndex - 1].startswith("__TEMP"):
                     delete(code[mainTokenIndex - 1])
                     
-                # MOV output input
-                URCL.append(["MOV", outputReg, inputReg])
-                
-                # mark output as initialised
-                initialisedRegList[owners.index(currentFuncName)][int(outputReg[1: ], 0) - 1] = True
+                if code[mainTokenIndex - 2] in constantVars[owners.index(getFuncFromVar(code[mainTokenIndex - 2]))]:
+                    constantValues[owners.index(getFuncFromVar(code[mainTokenIndex - 2]))][constantVars[owners.index(getFuncFromVar(code[mainTokenIndex - 2]))].index(code[mainTokenIndex - 2])] = inputReg
+                    
+                    if inputReg.startswith(("R", "#")):
+                        raise Exception(f"Cannot assign non-constant value to the constant {code[mainTokenIndex - 2]}")
+                    
+                else:
+                    # MOV output input
+                    URCL.append(["MOV", outputReg, inputReg])
+                    
+                    # mark output as initialised
+                    initialisedRegList[owners.index(currentFuncName)][int(outputReg[1: ], 0) - 1] = True
                 
                 # remove tokens
                 mainTokenIndex -= 1

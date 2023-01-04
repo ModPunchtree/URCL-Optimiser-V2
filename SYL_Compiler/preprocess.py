@@ -847,7 +847,30 @@ def preprocess(code: list):
                 variableTypes.pop(i)
             else:
                 i += 1
-        
+    
+    # convert non array definitions into UNARY*
+    for index, token in enumerate(code):
+        if code[index + 1] == "[":
+            if code[index - 1] not in types:
+                tokenList = []
+                square = 0
+                i = 2
+                while True:
+                    if (code[index + i] == "]") and (square == 0):
+                        break
+                    elif code[index + i] == "]":
+                        square -= 1
+                    elif code[index + i] == "[":
+                        square += 1
+                    tokenList.append(code[index + i])
+                    i += 1
+                code = code[: index].copy() + ["*", "("] + [code[index]] + ["+", "("] + tokenList.copy() + [")", ")"] + code[index + i + 1: ]
+                stop = 1
+                stop = 1
+                stop = 1
+                stop = 1
+                
+    
     return code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, variableTypes, functionTypes, arrayTypes, arrayLengths
 
 
