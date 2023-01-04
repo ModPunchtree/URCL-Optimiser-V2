@@ -889,7 +889,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                         regName = fetchVar(var)
                         
                         # only add instructions if the previous instruction isn't popping the same thing (not perfect)
-                        if URCL[-1: ]:
+                        if False: # URCL[-1: ]:
                             if URCL[-1] == ["HPOP", regName]:
                                 URCL.pop()
                             else:
@@ -901,9 +901,9 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                         else:
                             # do not save value if value is const type
                             type1 = getType(var)
-                            if not((type1.startswith("const")) or (var.startswith("'")) or (var[0].isnumeric())):
+                            if not((var in constantVars[owners.index(getFuncFromVar(var))]) or (var.startswith("'")) or (var[0].isnumeric())):
                                 # HPSH regName
-                                URCL.append(["HPSH", regName])
+                                URCL.append(["HSAV", regName])
             
             # fetch the input vars for the function (right to left, Rx to R1) (HPSH first before registers)
             inputIndex = numberOfInputs - 1
@@ -1017,9 +1017,9 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                     
                         # do not save value if value is const type
                         type1 = getType(var)
-                        if not((type1.startswith("const")) or (var.startswith("'")) or (var[0].isnumeric())):
+                        if not((var in constantVars[owners.index(getFuncFromVar(var))]) or (var.startswith("'")) or (var[0].isnumeric())):
                             # HPOP regName
-                            URCL.append(["HPOP", regName])
+                            URCL.append(["HRSR", regName])
                     
                             # mark reg as initialised
                             initialisedRegList[owners.index(currentFuncName)][int(regName[1:], 0) - 1] = True

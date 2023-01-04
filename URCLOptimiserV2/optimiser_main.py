@@ -344,10 +344,17 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20, compiled = F
         code, MINREG, optimisationCount = ruleBasedOptimisations(code, MINREG)
         
         ## Optimisation By Emulation
-        #code, success = OBE(code, BITS, MINREG, int(MINHEAP, 0), maxCycles, M0, MAXBLOCKSIZE)
-        #overallSuccess |= success
-        #optimisationCount += int(success)
+        code, success = OBE(code, BITS, MINREG, int(MINHEAP, 0), maxCycles, M0, MAXBLOCKSIZE)
+        overallSuccess |= success
+        optimisationCount += int(success)
         
+    # get rid of HSAV and HRSR
+    for i, line in enumerate(code):
+        if line[0] == "HSAV":
+            code[i][0] = "HPSH"
+        elif line[0] == "HRSR":
+            code[i][0] = "HPOP"
+    
     headers = [
         ["BITS", str(BITS)],
         ["MINREG", str(MINREG)],
