@@ -1,15 +1,69 @@
+// set aside memory for dynamic allocation
+void mem[20];
+void allocation[20];
 
-uint ack(uint m, uint n) {
-    if (m == 0) {
-        return n+1;
-    } else if (n == 0) {
-        return ack(m-1, 1);
-    } else {
-        return ack(m-1, ack(m, n-1));
+// mark all dynamic allocation as free
+void index = 0;
+while (index < sizeof(mem)) {
+    allocation[index] = 0;
+    index += 1;
+}
+
+void malloc(uint size) {
+    //find free area in mem
+    uint currentSize = 0;
+    void index = 0;
+    while (currentSize < size) {
+        if (allocation[index]) {
+            currentSize = 0;
+        } else {
+            currentSize += 1;
+        }
+            index += 1;
+    }
+    //mark area as not free
+    while (currentSize) {
+        index -= 1;
+        allocation[index] = -1;
+        currentSize -= 1;
+    }
+    //return pointer
+    return(mem + index);
+}
+
+void free(void pointer, uint size) {
+    void index = pointer - mem;
+    // mark area as free
+    while (size) {
+        allocation[index] = 0;
+        index += 1;
+        size -= 1;
     }
 }
 
-out(%numb, ack(6, 9));
+void main() {
+    //two source strings
+    char string1 = {"This is ", 0};
+    char string2 = {"very unsafe", 0};
 
+    //get memory for new string
+    char *string3 = malloc(sizeof(string1) + sizeof(string2) - 1);
 
+    //write string1 into string3
+    char *index = 0;
+    while (string1[index]) {
+        string3[index] = string1[index];
+        index += 1;
+    }
+    //write string2 into string3
+    char *index2 = 0;
+    while (string2[index2]) {
+        string3[index] = string2[index2];
+        index += 1;
+        index2 += 1;
+    }
+    //mark end of string3 with 0
+    string3[index] = 0;
 
+    //string3 is now both strings concatenated
+}

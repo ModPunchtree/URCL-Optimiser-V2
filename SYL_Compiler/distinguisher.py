@@ -267,7 +267,7 @@ def distinguisher(code: list, varNames: list, funcNames: list, arrNames: list, f
                 if code[index2] == "=":
                     code[index] = "UNARY*Assign"
                     break
-                elif code[index2] in (";", "}"):
+                elif code[index2] in (";", "}", "{"):
                     break
                 index2 += 1
     
