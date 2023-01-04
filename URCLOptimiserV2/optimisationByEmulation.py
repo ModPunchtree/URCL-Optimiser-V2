@@ -250,7 +250,6 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
     initialState_HEAP = [f"M{i}" for i in range(HEAPTotal)]
     callStack = []
     dataStack = []
-    saveStack = []
 
     REG = initialState_REG.copy()
     HEAP = initialState_HEAP.copy()
@@ -265,7 +264,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
     cycles = 0
     while PC != len(codeBlock):
         
-        if (len(callStack) > 32) or (len(saveStack) > 32) or (len(dataStack) > 32):
+        if (len(callStack) > 32) or (len(dataStack) > 32):
             raise Exception("Hardware stacks overflowed")
         
         if cycles >= cycleLimit:
@@ -567,7 +566,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
             case "HSAV":
                 answer = "HSAV"
             case "HRSR":
-                answer = saveStack.pop()
+                answer = dataStack.pop()
             case _:
                 raise Exception(f"Unrecognised instruction: {instruction}")
 
@@ -617,7 +616,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
             PC = int(operands[1], 0)
             branch = True
         elif instruction == "HSAV":
-            saveStack.append(int(operands[1], 0))
+            dataStack.append(int(operands[1], 0))
         elif instruction == "HRET":
             PC = answer
             branch = True
@@ -641,9 +640,6 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
     for index in range(len(dataStack)):
         dataStack[index]
         resultInstructions.append(["HPSH", str(dataStack[index])])
-    for index in range(len(saveStack)):
-        saveStack[index]
-        resultInstructions.append(["HSAV", str(saveStack[index])])
     
     # make list of unsolved registers and heap locations
     solvedRegisters = [False for i in range(len(REG))]
