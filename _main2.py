@@ -3,6 +3,7 @@ from SYL_Compiler.tokeniser import tokenise
 from SYL_Compiler.preprocess import preprocess
 from SYL_Compiler.distinguisher import distinguisher
 from SYL_Compiler.shuntingYard import shuntingYard
+from SYL_Compiler.precompileOptimiser import precompileOptimiser
 from SYL_Compiler.generateURCL import generateURCL
 from SYL_Compiler.memoryMap import memoryMap
 from copy import deepcopy
@@ -24,6 +25,8 @@ code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, variableTyp
 code2 = " ".join(code).replace(" ,", ",").replace(" ;", ";").replace("; ", ";").replace("( ", "(").replace(" )", ")").replace("{ ", "{").replace(" }", "}").replace(" [", "[").replace("[ ", "[").replace(" ]", "]").replace("} ", "}").replace(";", ";\n").replace("{", "{\n").replace("}", "}\n")
 
 code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, variableTypes, functionTypes, arrayTypes, arrayLengths = shuntingYard(code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, variableTypes, functionTypes, arrayTypes, arrayLengths)
+
+code = precompileOptimiser(code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, BITS, MINREG, variableTypes, functionTypes, arrayTypes, arrayLengths)
 
 # make code more readable
 code3 = " ".join(code).replace("; ", ";\n").replace("{ ", "{\n").replace("} ", "}\n")
