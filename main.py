@@ -11,6 +11,7 @@ from SYL_Compiler.tokeniser import tokenise
 from SYL_Compiler.preprocess import preprocess
 from SYL_Compiler.distinguisher import distinguisher
 from SYL_Compiler.shuntingYard import shuntingYard
+from SYL_Compiler.precompileOptimiser import precompileOptimiser
 from SYL_Compiler.generateURCL import generateURCL
 from SYL_Compiler.memoryMap import memoryMap
 
@@ -83,6 +84,54 @@ async def on_message(message):
             await message.channel.send(file=discord.File("output.txt"))
         return
 
+    elif message.content.startswith(("$SYLcompile -o", "$SYLcompile -O", "$SYLcompile-o", "$SYLcompile-O")):
+        # no optimisations
+        await message.channel.send("Compiling...")
+        try:
+            code = message.content[9: ]
+            if code.find("```\n") == -1:
+                raise Exception("FATAL - Code block not specified (missing triple backticks: `)")
+            code = code[code.index("```\n") + 4: ]
+            if code.find("```") == -1:
+                raise Exception("FATAL - Code block not specified (missing triple backticks: `)")
+            code = code[: code.index("```")]
+            
+            BITS = 16
+            MINREG = 25
+            
+            code = tokenise(code)
+            
+            code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, variableTypes, functionTypes, arrayTypes, arrayLengths = preprocess(code)
+            
+            code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, variableTypes, functionTypes, arrayTypes, arrayLengths = distinguisher(code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, variableTypes, functionTypes, arrayTypes, arrayLengths)
+            
+            code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, variableTypes, functionTypes, arrayTypes, arrayLengths = shuntingYard(code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, variableTypes, functionTypes, arrayTypes, arrayLengths)
+            
+            code = precompileOptimiser(code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, BITS, MINREG, variableTypes, functionTypes, arrayTypes, arrayLengths)
+            
+            URCL, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, BITS, MINREG, variableTypes, functionTypes, arrayTypes, arrayLengths = generateURCL(code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, BITS, MINREG, variableTypes, functionTypes, arrayTypes, arrayLengths)
+            
+            URCL = memoryMap(URCL, funcNames, funcMapNames, funcMapLocations, BITS, MINREG, functionTypes)
+            
+            result = []
+            for line in URCL:
+                text = " ".join(line)
+                result.append(text)
+            result = "\n".join(result)
+            
+        except Exception as x:
+            await message.channel.send(f"ERROR: \n{x}")
+            return
+        f = open("output.txt", "w")
+        f.write(result)
+        f.close()
+        await message.channel.send(f"Success!\nNumber of optimisations applied: 0")
+        if len(result) < 500:
+            await message.channel.send(f"```\n{result}```")
+        else:
+            await message.channel.send(file=discord.File("output.txt"))
+        return
+
     elif message.content.startswith("$SYLcompile"):
         await message.channel.send("Compiling...")
         try:
@@ -104,6 +153,8 @@ async def on_message(message):
             code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, variableTypes, functionTypes, arrayTypes, arrayLengths = distinguisher(code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, variableTypes, functionTypes, arrayTypes, arrayLengths)
             
             code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, variableTypes, functionTypes, arrayTypes, arrayLengths = shuntingYard(code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, variableTypes, functionTypes, arrayTypes, arrayLengths)
+            
+            code = precompileOptimiser(code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, BITS, MINREG, variableTypes, functionTypes, arrayTypes, arrayLengths)
             
             URCL, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, BITS, MINREG, variableTypes, functionTypes, arrayTypes, arrayLengths = generateURCL(code, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, BITS, MINREG, variableTypes, functionTypes, arrayTypes, arrayLengths)
             
