@@ -260,6 +260,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
     HEAP = initialState_HEAP.copy()
     initialisedREG = [True for i in range(REGTotal + 1)]
     initialisedHEAP = [True for i in range(HEAPTotal)]
+    initialisedHEAP2 = [False for i in range(HEAPTotal)]
     
     resultInstructions = []
     
@@ -582,29 +583,29 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
         elif instruction == "STR":
             try:
                 HEAP[int(operands[1], 0)] = answer
-                initialisedHEAP[int(operands[1], 0)] = True
+                initialisedHEAP2[int(operands[1], 0)] = True
             except:
                 HEAP[int(operands[1][1: ], 0)] = answer
-                initialisedHEAP[int(operands[1][1: ], 0)] = True
+                initialisedHEAP2[int(operands[1][1: ], 0)] = True
         elif instruction == "LSTR":
             cycles += 1
             if operands[1].startswith("M"):
                 HEAP[int(operands[1][1: ], 0) + int(operands[2], 0)] = answer
-                initialisedHEAP[int(operands[1][1: ], 0) + int(operands[2], 0)] = True
+                initialisedHEAP2[int(operands[1][1: ], 0) + int(operands[2], 0)] = True
             elif operands[2].startswith("M"):
                 HEAP[int(operands[1], 0) + int(operands[2][1: ], 0)] = answer
-                initialisedHEAP[int(operands[1], 0) + int(operands[2][1: ], 0)] = True
+                initialisedHEAP2[int(operands[1], 0) + int(operands[2][1: ], 0)] = True
             else:
                 HEAP[int(operands[1], 0) + int(operands[2], 0)] = answer
-                initialisedHEAP[int(operands[1], 0) + int(operands[2], 0)] = True
+                initialisedHEAP2[int(operands[1], 0) + int(operands[2], 0)] = True
         elif instruction == "CPY":
             cycles += 1
             try:
                 HEAP[int(operands[1][1: ], 0)] = answer
-                initialisedHEAP[int(operands[1][1: ], 0)] = True
+                initialisedHEAP2[int(operands[1][1: ], 0)] = True
             except:
                 HEAP[int(operands[1], 0)] = answer
-                initialisedHEAP[int(operands[1], 0)] = True
+                initialisedHEAP2[int(operands[1], 0)] = True
         elif instruction in branches:
             if answer:
                 PC = int(operands[1], 0)
@@ -648,7 +649,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
     
     # make list of unsolved registers and heap locations
     solvedRegisters = [False for i in range(len(REG))]
-    solvedHeap = [False for i in range(len(HEAP))]
+    solvedHeap = [not i for i in initialisedHEAP2]
     solvedRegisters[0] = True
     
     # start with registers R1 -> Rx then heap M0 -> Mx
