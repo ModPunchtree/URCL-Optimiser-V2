@@ -2335,11 +2335,11 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
         
         malloc = [
             [".malloc_FUNCSTART"],
-            ["MOV", "R2", "SP"],
+            ["MOV", "R2", "4095"],
             ["MOV", "R3", "R1"],
             ["BLE", "~+11", "R2", "SP"],
             ["LOD", "R4", "R2"],
-            ["BNZ", "~+5", "R4"],
+            ["BRZ", "~+5", "R4"],
             ["MOV", "R3", "R1"],
             ["DEC", "R2", "R2"],
             ["BRG", "~-4", "R2", "SP"],
