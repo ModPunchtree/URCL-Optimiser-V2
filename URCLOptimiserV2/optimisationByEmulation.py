@@ -655,11 +655,15 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
     # start with registers R1 -> Rx then heap M0 -> Mx
     dependencyStack = []
 
-    i = 1
+    combined = solvedRegisters + solvedHeap
+
+    i = combined.index(False)
     while (False in solvedRegisters) or (False in solvedHeap):
 
-        if i >= (len(REG) + len(HEAP)):
-            i = 1
+        combined = solvedRegisters + solvedHeap
+
+        #if i >= (len(REG) + len(HEAP)):
+        #    i = combined.index(False)
 
         if i < len(REG):
             if solvedRegisters[i] == False:
@@ -672,7 +676,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
                 if value == initalRegName:
                     # mark register as solved
                     solvedRegisters[i] = True
-                    i += 1
+                    i = combined.index(False)
                     dependencyStack = []
 
                 elif value.startswith(("R", "M")):
@@ -710,13 +714,13 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
                             resultInstructions.append(["MOV", initalRegName, value])
                             # mark register as solved
                             solvedRegisters[i] = True
-                            i += 1
+                            i = combined.index(False)
                             dependencyStack = []
                         elif value.startswith("M"):
                             resultInstructions.append(["LOD", initalRegName, value])
                             # mark register as solved
                             solvedRegisters[i] = True
-                            i += 1
+                            i = combined.index(False)
                             dependencyStack = []
                         else:
                             raise Exception("oppsie")
@@ -725,12 +729,12 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
                     resultInstructions.append(["IMM", f"R{i}", value])
                     # mark register as solved
                     solvedRegisters[i] = True
-                    i += 1
+                    i = combined.index(False)
                     dependencyStack = []
                     
             else:
                 # already solved
-                i += 1
+                i = combined.index(False)
 
         else:
             if solvedHeap[i - len(REG)] == False:
@@ -743,7 +747,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
                 if value == initalHeapName:
                     # mark heap as solved
                     solvedHeap[i - len(REG)] = True
-                    i += 1
+                    i = combined.index(False)
                     dependencyStack = []
 
                 elif value.startswith(("R", "M")):
@@ -781,13 +785,13 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
                             resultInstructions.append(["STR", initalHeapName, value])
                             # mark heap as solved
                             solvedHeap[i - len(REG)] = True
-                            i += 1
+                            i = combined.index(False)
                             dependencyStack = []
                         elif value.startswith("M"):
                             resultInstructions.append(["CPY", initalHeapName, value])
                             # mark heap as solved
                             solvedHeap[i - len(REG)] = True
-                            i += 1
+                            i = combined.index(False)
                             dependencyStack = []
                         else:
                             raise Exception("oppsie")
@@ -796,11 +800,11 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
                     resultInstructions.append(["STR", f"M{i - len(REG)}", value])
                     # mark heap location as solved
                     solvedHeap[i - len(REG)] = True
-                    i += 1
+                    i = combined.index(False)
                     dependencyStack = []
             else:
                 # already solved
-                i += 1
+                i = combined.index(False)
     
     # old register and heap generating code (doesn't handle dependencies)
     """for index in range(len(REG)):
