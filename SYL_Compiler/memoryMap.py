@@ -51,14 +51,15 @@ def memoryMap(URCL: list, funcNames: list, funcMapNames: list, funcMapLocations:
         for line in URCL:
             for token in line:
                 if token.startswith("#"):
-                    heapLocationName = token[token.index("_") + 1: ]
-                    
-                    possibleSize = int(token[1: token.index("_")], 0) + 1
-                    
-                    currentSize = funcSizes[funcMapNames.index(heapLocationName)]
-                    
-                    if possibleSize > currentSize:
-                        funcSizes[funcMapNames.index(heapLocationName)] = possibleSize
+                    if token != "#bottomOfDynamic":
+                        heapLocationName = token[token.index("_") + 1: ]
+                        
+                        possibleSize = int(token[1: token.index("_")], 0) + 1
+                        
+                        currentSize = funcSizes[funcMapNames.index(heapLocationName)]
+                        
+                        if possibleSize > currentSize:
+                            funcSizes[funcMapNames.index(heapLocationName)] = possibleSize
     
     # get max size of each individual heap
     heapSizes = [0 for i in range(max(heapMap) + 1)]
@@ -70,28 +71,34 @@ def memoryMap(URCL: list, funcNames: list, funcMapNames: list, funcMapLocations:
         
         if size > currentSize:
             heapSizes[heapMap[i]] = size
-            
+    
+    # calculate #bottomOfDynamic (the first unused heap location)
+    bottomOfDynamic = sum(heapSizes)
+    
     # find and replace # prepended values
     for func in funcMapNames:
         for index1, line in enumerate(URCL):
             for index2, token in enumerate(line):
                 if token.startswith("#"):
-                    num = int(token[1: token.index("_")], 0)
-                    
-                    funcName = token[token.index("_") + 1: ]
-                    
-                    heapName = heapMap[funcMapNames.index(funcName)]
-                    
-                    baseIndex = 0
-                    for i in range(heapName):
-                        baseIndex += heapSizes[i]
+                    if token == "#bottomOfDynamic":
+                        URCL[index1][index2] = f"M{bottomOfDynamic}"
+                    else:
+                        num = int(token[1: token.index("_")], 0)
                         
-                    num += baseIndex
-                    
-                    URCL[index1][index2] = f"M{num}"
+                        funcName = token[token.index("_") + 1: ]
+                        
+                        heapName = heapMap[funcMapNames.index(funcName)]
+                        
+                        baseIndex = 0
+                        for i in range(heapName):
+                            baseIndex += heapSizes[i]
+                            
+                        num += baseIndex
+                        
+                        URCL[index1][index2] = f"M{num}"
     
     
-    URCL.insert(0, ["MINSTACK", "0", "// does not use software stack"])
+    URCL.insert(0, ["MINSTACK", f"{2**12 - bottomOfDynamic}"])
     
     # generate MINHEAP header
     value = sum(heapSizes)

@@ -119,7 +119,7 @@ def shuntingYard(code: list, varNames: list, funcNames: list, arrNames: list, fu
     
         if token in operators:
             return len(operators) - operators.index(token)
-        elif token in funcNames2:
+        elif (token in funcNames2) or (token in ("malloc", "fmalloc", "free", "ffree")):
             return len(operators) - operators.index("funcPrecidence")
         elif token in braces:
             return -1
@@ -279,9 +279,6 @@ def shuntingYard(code: list, varNames: list, funcNames: list, arrNames: list, fu
     while code:
         token = code.pop(0)
         
-        if code[: 2] == ["input10___global", "="]:
-            stop = 1
-        
         if (token[0].isnumeric()) or (token.startswith(tuple(varNames))) or (token.startswith(tuple(arrNames))) or ((token.startswith(("'", "%"))) and (len(token) > 1)): # number or var or array name or char or %port
             outputStack.append(token)
         
@@ -299,9 +296,15 @@ def shuntingYard(code: list, varNames: list, funcNames: list, arrNames: list, fu
             if token == ";":
                 outputStack.append(token)
             elif token == ",":
-                pass
+                outputStack.append(token) # needed for unnamed array definitions
             else:
                 operatorStack.append(token)
+        elif token == "arrStart":
+            if isArray:
+                raise Exception("You cannot define arrays inside of arrays!")
+            isArray = True
+            outputStack.append("arrStart")
+            operatorStack.append("arrStart")
         elif token in ("{", "arrStart"):
             if isArray:
                 raise Exception("You cannot define arrays inside of arrays!")
@@ -344,7 +347,7 @@ def shuntingYard(code: list, varNames: list, funcNames: list, arrNames: list, fu
             if operatorStack:
                 if (operatorStack[-1] in funcNames2) or (operatorStack[-1] in builtins) or (operatorStack[-1] in ("in", "out")):
                     outputStack.append(operatorStack.pop())
-        elif (token in funcNames2) or (token in ("in", "out")):
+        elif (token in funcNames2) or (token in ("in", "out", "malloc", "fmalloc", "free", "ffree")):
             if operatorStack:
                 if operatorStack[-1] in funcTypes:
                     if token in ("in", "out"):
@@ -379,10 +382,10 @@ def shuntingYard(code: list, varNames: list, funcNames: list, arrNames: list, fu
         
     outputStack += operatorStack[: : -1]
     
-    def foo(x):
+    """def foo(x):
         return x != ","
     
-    outputStack = list(filter(foo, outputStack))
+    outputStack = list(filter(foo, outputStack))"""
     
     return outputStack, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, variableTypes, functionTypes, arrayTypes, arrayLengths
 

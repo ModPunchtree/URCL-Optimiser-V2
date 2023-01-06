@@ -537,7 +537,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 
             # return base index
             return f"#{len(heap) - length}_{currentFuncName}"
-    
+        
     def getType(name: str):
         # if numeric return "void":
         if name[0].isnumeric():
@@ -666,11 +666,18 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 return # nothing
             
             elif "[0]" + varName in heap:
+                # evict target register
+                evictReg(regName, currentFuncName)
+                
                 # get heapIndex of source
                 heapIndex = heap.index("[0]" + varName)
                 
-                # return heap location as immediate value (do not update stack or registers or LRU)
-                return f"#{heapIndex}_{funcName}"
+                # check initialisation status
+                if initialisedHeap[heapIndex]:
+                    # LOD regName #heapIndex_funcName
+                    URCL.append(["LOD", regName, f"#{heapIndex}_{funcName}"])
+                
+                return # nothing
             
             else:
                 # remove outermost scope and try again
@@ -832,6 +839,10 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
     arrayBeingDefined = [] # used when defining arrays to keep track of the current name and length
     
     whileHeaderTokens = [] # used to "replay" the while header tokens at the end of a while statement
+    
+    malloc = False # used to know if these functions should be appended to final code
+    fmalloc = False
+    free = False
     
     mainTokenIndex = 0
     while mainTokenIndex < len(code):
@@ -1130,12 +1141,9 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             code.pop(mainTokenIndex)
             code.pop(mainTokenIndex)
             
-            # if next token is "=":
-            if code[mainTokenIndex] == "=":
+            # if next token is "arrStart":
+            if code[mainTokenIndex] == "arrStart":
                 # define array values
-                
-                # pop "="
-                code.pop(mainTokenIndex)
                 
                 # pop "arrStart"
                 code.pop(mainTokenIndex)
@@ -1143,59 +1151,146 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 # everything will be defined once the "arrEnd" token is reached naturally
                 
                 # this will be used by the "arrEnd" so it knows what the array is
-                arrayBeingDefined.append((name, length))
+                arrayBeingDefined.append((name, length, ""))
+        
+        # arrStart
+        elif token == "arrStart":
+            
+            # get var for base pointer later
+            basePointerVar = code[mainTokenIndex - 1]
                 
+            # get arrayLength
+            if code[mainTokenIndex + 1] == "arrEnd":
+                length = 0
+            else:
+                length = 1
+                index = mainTokenIndex
+                bad = 0
+                while True:
+                    if (code[index] == "arrEnd") and (bad == 1):
+                        break
+                    elif code[index] == "arrEnd":
+                        bad -= 1
+                    elif code[index] == "arrStart":
+                        bad += 1
+                    elif (code[index] == ",") and (bad == 1):
+                        length += 1
+                    index += 1
+            
+            # define array
+            arrayBeingDefined.append(("", length, basePointerVar))
+            
+            # pop "arrStart"
+            code.pop(mainTokenIndex)
+            
+        # ,
+        elif token == ",":
+            code.pop(mainTokenIndex)
+        
         # arrEnd
         elif token == "arrEnd":
             # get name and length from arrayBeingDefined stack
             name = arrayBeingDefined[-1][0]
             length = arrayBeingDefined[-1][1]
+            basePointerVar = arrayBeingDefined[-1][2]
             arrayBeingDefined.pop()
-            
-            # get type of elements in the array (for type checks)
-            arrayType = arrayTypes[arrNames.index(name)]
             
             # pop "arrEnd"
             code.pop(mainTokenIndex)
             
-            # define array values (right to left, [x] to [0])
-            for i in range(length):
-                # get next token
-                mainTokenIndex -= 1
-                token = code[mainTokenIndex]
-                
-                # check that var being fetched is initialised
-                if getInitialisationStatus(token) == False:
-                    raise Exception(f"Values in an array definition cannot be uninitialised!\nUninitialised variable: {token}")
-                
-                # fetch var
-                regName = fetchVar(token)
-                
-                # get fetched var type
-                targetType = getType(token)
-                
-                if targetType.startswith("const"):
-                    targetType = targetType[5: ]
-                # type check
-                if (arrayType != targetType) and (targetType != "void") and (arrayType != "void") and (arrayType != f"const{targetType}"):
-                    raise Exception(f"Array definition {name} contains an element with the wrong type\nExpected type: {arrayType}\nFound type: {targetType}")
-                
-                # get target array index and its heap index
-                targetIndex = length - 1 - i
-                heapIndex = heapStack[owners.index(currentFuncName)].index(f"[{targetIndex}]{name}")
-                heapLocation = f"#{heapIndex}_{currentFuncName}"
-                
-                # STR heapLocation regName
-                URCL.append(["STR", heapLocation, regName])
-                
-                # mark heap location as initialised
-                initialisedHeapList[owners.index(currentFuncName)][heapIndex] = True
-                
-                # remove token
-                code.pop(mainTokenIndex)
+            # if normal array definition
+            if not basePointerVar:
             
-            # fix mainTokenIndex
-            #mainTokenIndex -= 1
+                # get type of elements in the array (for type checks)
+                arrayType = arrayTypes[arrNames.index(name)]
+                
+                # define array values (right to left, [x] to [0])
+                for i in range(length):
+                    # get next token
+                    mainTokenIndex -= 1
+                    token = code[mainTokenIndex]
+                    
+                    # check that var being fetched is initialised
+                    if getInitialisationStatus(token) == False:
+                        raise Exception(f"Values in an array definition cannot be uninitialised!\nUninitialised variable: {token}")
+                    
+                    # fetch var
+                    regName = fetchVar(token)
+                    
+                    # get fetched var type
+                    targetType = getType(token)
+                    
+                    if targetType.startswith("const"):
+                        targetType = targetType[5: ]
+                    # type check
+                    if (arrayType != targetType) and (targetType != "void") and (arrayType != "void") and (arrayType != f"const{targetType}"):
+                        raise Exception(f"Array definition {name} contains an element with the wrong type\nExpected type: {arrayType}\nFound type: {targetType}")
+                    
+                    # get target array index and its heap index
+                    targetIndex = length - 1 - i
+                    heapIndex = heapStack[owners.index(currentFuncName)].index(f"[{targetIndex}]{name}")
+                    heapLocation = f"#{heapIndex}_{currentFuncName}"
+                    
+                    # STR heapLocation regName
+                    URCL.append(["STR", heapLocation, regName])
+                    
+                    # mark heap location as initialised
+                    initialisedHeapList[owners.index(currentFuncName)][heapIndex] = True
+                    
+                    # remove token
+                    code.pop(mainTokenIndex)
+                
+                # fix mainTokenIndex
+                #mainTokenIndex -= 1
+                
+                # if not unnamed - get rid of "=" token
+                if not name.startswith("unnamedArr"):
+                    if code[mainTokenIndex] == "=":
+                        code.pop(mainTokenIndex)
+
+            # array being assigned to a runtime pointer
+            else:
+                # define array values (right to left, [x] to [0])
+                for i in range(length):
+                    # get next token
+                    mainTokenIndex -= 1
+                    token = code[mainTokenIndex]
+                    
+                    # check that var being fetched is initialised
+                    if getInitialisationStatus(token) == False:
+                        raise Exception(f"Values in an array definition cannot be uninitialised!\nUninitialised variable: {token}")
+                    
+                    # fetch var
+                    regName = fetchVar(token)
+                    
+                    # fetch basePointer
+                    basePointerReg = fetchVar(basePointerVar)
+                    
+                    # if token is TEMP, delete
+                    if token.startswith("__TEMP"):
+                        delete(token)
+                    
+                    # get target array index
+                    targetIndex = length - 1 - i
+                    
+                    # STR heapLocation regName
+                    URCL.append(["LSTR", basePointerReg, str(targetIndex), regName])
+                    
+                    # remove token
+                    code.pop(mainTokenIndex)
+                
+                # if basePointerVar is TEMP: delete
+                if basePointerVar.startswith("__TEMP"):
+                    delete(basePointerVar)
+                
+                # if not unnamed - get rid of "=" token
+                if not name.startswith("unnamedArr"):
+                    if code[mainTokenIndex] == "=":
+                        code.pop(mainTokenIndex)
+                
+                # pop basePointerVar
+                mainTokenIndex -= 1
+                code.pop(mainTokenIndex)
 
         # Arr
         elif token == "Arr":
@@ -2098,6 +2193,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
         elif token.startswith("%"):
             mainTokenIndex += 1
         
+        # del
         elif token == "del":
             varName = code[mainTokenIndex - 1]
             
@@ -2107,8 +2203,199 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             code.pop(mainTokenIndex)
             code.pop(mainTokenIndex)
         
+        # malloc
+        elif token == "malloc":
+            # fetch copy of var into R1
+            fetchCopyVar("R1", code[mainTokenIndex - 1])
+            
+            # evict R2
+            evictReg("R2", currentFuncName)
+            
+            # evict R3
+            evictReg("R3", currentFuncName)
+            
+            # evict R4
+            evictReg("R4", currentFuncName)
+            
+            # if var is TEMP: delete
+            if code[mainTokenIndex - 1].startswith("__TEMP"):
+                delete(code[mainTokenIndex - 1])
+            
+            # HCAL .fmalloc_FUNCSTART
+            URCL.append(["HCAL", ".malloc_FUNCSTART"])
+            
+            # create TEMP var
+            tempVar = createTEMP("void")
+            
+            # force R1 to be LRU
+            LRUStack[owners.index(currentFuncName)][0] = max(LRUStack[owners.index(currentFuncName)]) + 1
+
+            # invalid fetch TEMP var (hopefully into R1)
+            regName = fetchVar(tempVar, invalid=True)
+            
+            # mark temp as initialised
+            initialisedRegList[owners.index(currentFuncName)][int(regName[1: ], 0) - 1] = True
+            
+            # insert temp var into tokens
+            code[mainTokenIndex - 1] = tempVar
+            
+            # set malloc flag
+            malloc = True
+            
+            # delete token
+            code.pop(mainTokenIndex)
+        
+        # fmalloc
+        elif token == "fmalloc":
+            # fetch copy of var into R1
+            fetchCopyVar("R1", code[mainTokenIndex - 1])
+            
+            # evict R2
+            evictReg("R2", currentFuncName)
+            
+            # if var is TEMP: delete
+            if code[mainTokenIndex - 1].startswith("__TEMP"):
+                delete(code[mainTokenIndex - 1])
+            
+            # HCAL .fmalloc_FUNCSTART
+            URCL.append(["HCAL", ".fmalloc_FUNCSTART"])
+            
+            # create TEMP var
+            tempVar = createTEMP("void")
+            
+            # force R1 to be LRU
+            LRUStack[owners.index(currentFuncName)][0] = max(LRUStack[owners.index(currentFuncName)]) + 1
+            
+            # invalid fetch TEMP var (hopefully into R1)
+            regName = fetchVar(tempVar, invalid=True)
+            
+            # mark temp as initialised
+            initialisedRegList[owners.index(currentFuncName)][int(regName[1: ], 0) - 1] = True
+            
+            # insert temp var into tokens
+            code[mainTokenIndex - 1] = tempVar
+            
+            # set fmalloc flag
+            fmalloc = True
+            
+            # delete token
+            code.pop(mainTokenIndex)
+        
+        # free
+        elif token == "free":
+            # fetch copy of left var into R1
+            fetchCopyVar("R1", code[mainTokenIndex - 2])
+            
+            # fetch copy of right var into R2
+            fetchCopyVar("R2", code[mainTokenIndex - 1])
+
+            # if input vars are TEMP: delete
+            if code[mainTokenIndex - 1].startswith("__TEMP"):
+                delete(code[mainTokenIndex - 1])
+            if code[mainTokenIndex - 2].startswith("__TEMP"):
+                delete(code[mainTokenIndex - 2])
+            
+            # HCAL .free_FUNCSTART
+            URCL.append(["HCAL", ".free_FUNCSTART"])
+            
+            # set free flag
+            free = True
+            
+            # delete tokens
+            mainTokenIndex -= 2
+            code.pop(mainTokenIndex)
+            code.pop(mainTokenIndex)
+            code.pop(mainTokenIndex)
+        
+        # ffree
+        elif token == "ffree":
+            # fetch previous var
+            regName = fetchVar(code[mainTokenIndex - 1])
+            
+            # if var is TEMP: delete
+            if code[mainTokenIndex - 1].startswith("__TEMP"):
+                delete(code[mainTokenIndex - 1])
+            
+            # SUB SP SP regName
+            URCL.append(["SUB", "SP", "SP", regName])
+            
+            # delete tokens
+            mainTokenIndex -= 1
+            code.pop(mainTokenIndex)
+            code.pop(mainTokenIndex)
+        
         else:
             raise Exception(f"Unrecognised generate URCL token: {token}")
+    
+    # prepend HLT
+    URCL.append(["HLT"])
+    
+    # prepend malloc functions if used
+    if malloc:
+        
+        malloc = [
+            [".malloc_FUNCSTART"],
+            ["MOV", "R2", "SP"],
+            ["MOV", "R3", "R1"],
+            ["BLE", "~+11", "R2", "SP"],
+            ["LOD", "R4", "R2"],
+            ["BNZ", "~+5", "R4"],
+            ["MOV", "R3", "R1"],
+            ["DEC", "R2", "R2"],
+            ["BRG", "~-4", "R2", "SP"],
+            ["JMP", "~+5"],
+            ["DEC", "R3", "R3"],
+            ["DEC", "R2", "R2"],
+            ["BRZ", "~+2", "R3"],
+            ["BRG", "~-9", "R2", "SP"],
+            ["SUB", "R2", "R2", "R3"],
+            ["BRG", "~+2", "R2", "SP"],
+            ["MOV", "SP", "R2"],
+            ["ADD", "R4", "R2", "R1"],
+            ["BGE", "~+4", "R2", "R4"],
+            ["INC", "R2", "R2"],
+            ["STR", "R2", "65535"],
+            ["BRL", "~-2", "R2", "R4"],
+            ["SUB", "R1", "4095", "R2"],
+            ["ADD", "R1", "R1", "#bottomOfDynamic"],
+            ["HRET"]
+        ]
+        
+        URCL += malloc
+    
+    if fmalloc:
+        
+        fmalloc = [
+            [".fmalloc_FUNCSTART"],
+            ["SUB", "R2", "4095", "SP"],
+            ["SUB", "R1", "SP", "R1"],
+            ["BRE", "~+4", "SP", "R1"],
+            ["STR", "SP", "65535"],
+            ["DEC", "SP", "SP"],
+            ["BNE", "~-2", "SP", "R1"],
+            ["ADD", "R1", "R2", "#bottomOfDynamic"],
+            ["HRET"]
+        ]
+        
+        URCL += fmalloc
+        
+    if free:
+        
+        free = [
+            [".free_FUNCSTART"],
+            ["SUB", "R1", "R1", "#bottomOfDynamic"],
+            ["SUB", "R1", "4095", "R1"],
+            ["SUB", "R2", "R1", "R2"],
+            ["BRE", "~+4", "R1", "R2"],
+            ["STR", "R1", "0"],
+            ["DEC", "R1", "R1"],
+            ["BNE", "~-2", "R1", "R2"],
+            ["HRET"]
+        ]
+        
+        URCL += free
+    
+    URCL.insert(0, ["IMM", "SP", "4095"])
     
     return URCL, varNames, funcNames, arrNames, funcMapNames, funcMapLocations, BITS, MINREG, variableTypes, functionTypes, arrayTypes, arrayLengths
 

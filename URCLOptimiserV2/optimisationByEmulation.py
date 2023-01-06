@@ -3,6 +3,11 @@ from copy import deepcopy
 
 def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTotal: int, cycleLimit = 500, M0 = -1):
 
+    if not codeBlock__:
+        raise Exception("no")
+
+    REGTotal = 29 # this is to make SP work
+
     # if M0 is given, then all heap loads/stores are supported
 
     # no labels that point to DW values
@@ -197,7 +202,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
             if token in labels:
                 codeBlock[index][index2] = labelValues[labels.index(token)]
             elif token == "SP":
-                raise Exception("codeBlock must not contain SP")
+                codeBlock[index][index2] = "R29"
             elif token.startswith("."):
                 raise Exception(f"Undefined label: {token}")
 
@@ -807,7 +812,13 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
     if appendHLT:
         resultInstructions.append(["HLT"])
 
-    if len(resultInstructions) >= cycles:
+    if (len(resultInstructions) > cycles) or ((resultInstructions != codeBlock) and (len(resultInstructions) == cycles)):
         raise Exception("Optimised code is worse than the initial codeblock")
+
+    # convert R29 back into SP
+    for index, line in enumerate(resultInstructions):
+        for index2, token in enumerate(line):
+            if token == "R29":
+                resultInstructions[index][index2] = "SP"
 
     return resultInstructions

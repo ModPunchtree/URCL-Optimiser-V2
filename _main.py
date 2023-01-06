@@ -13,7 +13,7 @@ code, optimisationCount = optimiseURCL(code, maxCycles=100000, M0=0, MAXBLOCKSIZ
 
 #BITS = 16
 #MINREG = 25
-#HEAPTotal = 14
+#HEAPTotal = 2**12
 #cycleLimit = 100000
 #code = optimisationByEmulation(code[5: ], BITS, MINREG, HEAPTotal, cycleLimit)
 

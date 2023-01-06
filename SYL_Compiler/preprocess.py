@@ -42,6 +42,13 @@ def preprocess(code: list):
                 if token.find("___") != -1:
                     raise Exception(f"Tokens in code must not contain \"___\" in: {token}")
     
+    if openCurly != closeCurly:
+        raise Exception("Mismatched () brackets")
+    if openSquare != closeSquare:
+        raise Exception("Mismatched [] brackets")
+    if openSquiggly != closeSquiggly:
+        raise Exception("Mismatched {" + "} brackets")
+    
     # convert strings to a list of chars
     index = 0
     while index < len(code):
@@ -61,11 +68,11 @@ def preprocess(code: list):
             code = code[: index] + string.copy() + code[index + 1: ]
         index += 1
     
-    # fill in missing array definition []
+    """# fill in missing array definition []
     for index, token in enumerate(code[: -2]):
         if code[index: index + 2] == ["=", "{"]:
             if code[index - 1] != "]":
-                code = code[: index] + ["[", "]"] + code[index: ]
+                code = code[: index] + ["[", "]"] + code[index: ]"""
     
     # fill in missing array defintion lengths
     for index, token in enumerate(code[: -4]):
@@ -83,13 +90,31 @@ def preprocess(code: list):
                 code[index2] = "arrEnd"
             length = str(length)
             code.insert(index + 1, length)
-    
+            
+    # arrStart and arrEnd
+    for index, token in enumerate(code[: -2]):
+        if code[index: index + 2] == ["=", "{"]:
+            code[index + 1] = "arrStart"
+            
+            index2 = index + 2
+            bad = 0
+            while True:
+                if (code[index2] == "}") and (bad == 0):
+                    break
+                elif code[index2] == "}":
+                    bad -= 1
+                elif code[index2] == "{":
+                    bad += 1
+                index2 += 1
+            
+            code[index2] = "arrEnd"
+            
     # Combine types
     index = 0
     while index < len(code) - 3:
         token = code[index]
         if token in types:
-            if (code[index + 1] == "*") and (code[index + 3] in (";", "=", "(", ",", ")")):
+            if (code[index + 1] == "*") and (code[index + 3] in (";", "=", "(", ",", ")", "[")):
                 code.pop(index)
                 code.pop(index)
                 code.insert(index, token + "*")
@@ -469,7 +494,11 @@ def preprocess(code: list):
             "break",
             "elseif",
             "arrStart",
-            "arrEnd"
+            "arrEnd",
+            "malloc",
+            "fmalloc",
+            "free",
+            "ffree"
         )
         
     asm = False

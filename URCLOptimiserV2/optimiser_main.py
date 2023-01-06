@@ -344,7 +344,7 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20, compiled = F
         code, MINREG, optimisationCount = ruleBasedOptimisations(code, MINREG)
         
         ## Optimisation By Emulation
-        code, success = OBE(code, BITS, MINREG, int(MINHEAP, 0), maxCycles, M0, MAXBLOCKSIZE)
+        code, success = OBE(code, BITS, MINREG, int(MINHEAP, 0), int(MINSTACK, 0), maxCycles, M0, MAXBLOCKSIZE)
         overallSuccess |= success
         optimisationCount += int(success)
         

@@ -3015,7 +3015,7 @@ def HRSRHSAV(code: list):
     return code, success
 
 ## Optimsation By Emulation
-def OBE(code: list, BITS: int, MINREG: int, MINHEAP: int, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20):
+def OBE(code: list, BITS: int, MINREG: int, MINHEAP: int, MINSTACK: int, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20):
 
     # search code for codeblocks
     # a codeblock must:
@@ -3037,7 +3037,7 @@ def OBE(code: list, BITS: int, MINREG: int, MINHEAP: int, maxCycles = 500, M0 = 
     
     # try full code
     try:
-        code = optimisationByEmulation(code, BITS, MINREG, MINHEAP, maxCycles, M0)
+        code = optimisationByEmulation(code, BITS, MINREG, MINHEAP + MINSTACK, maxCycles, M0)
         success = True
         return code, success
     except Exception as x:
@@ -3095,7 +3095,7 @@ def OBE(code: list, BITS: int, MINREG: int, MINHEAP: int, maxCycles = 500, M0 = 
                     if not bad:
                         # try
                         try:
-                            result = optimisationByEmulation(codeBlock, BITS, MINREG, MINHEAP, maxCycles, M0)
+                            result = optimisationByEmulation(codeBlock, BITS, MINREG, MINHEAP + MINSTACK, maxCycles, M0)
                             code = code[: index] + result + code[index + snippetLength: ]
                             success = True
                             return code, success
