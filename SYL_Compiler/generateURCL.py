@@ -645,8 +645,9 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                     
                     # check register initialisation status
                     if initialisedReg[registers.index(varName)]:
-                        # MOV regName oldReg
-                        URCL.append(["MOV", regName, f"R{registers.index(varName) + 1}"])
+                        if regName != f"R{registers.index(varName) + 1}":
+                            # MOV regName oldReg
+                            URCL.append(["MOV", regName, f"R{registers.index(varName) + 1}"])
                 
                 return # nothing
             
@@ -1681,8 +1682,9 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                         raise Exception(f"Cannot assign non-constant value to the constant {code[mainTokenIndex - 2]}")
                     
                 else:
-                    # MOV output input
-                    URCL.append(["MOV", outputReg, inputReg])
+                    if outputReg != inputReg:
+                        # MOV output input
+                        URCL.append(["MOV", outputReg, inputReg])
                     
                     # mark output as initialised
                     initialisedRegList[owners.index(currentFuncName)][int(outputReg[1: ], 0) - 1] = True
@@ -1843,8 +1845,9 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             tempVar = createTEMP("bool")
             regName2 = fetchVar(tempVar)
             
-            # MOV regName2 regName
-            URCL.append(["MOV", regName2, regName])
+            if regName2 != regName:
+                # MOV regName2 regName
+                URCL.append(["MOV", regName2, regName])
             
             # delete new TEMP var
             delete(tempVar)
@@ -1898,8 +1901,9 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             tempVar = createTEMP("bool")
             regName2 = fetchVar(tempVar)
             
-            # MOV regName2 regName
-            URCL.append(["MOV", regName2, regName])
+            if regName2 != regName:
+                # MOV regName2 regName
+                URCL.append(["MOV", regName2, regName])
             
             # delete new TEMP var
             delete(tempVar)
@@ -1947,8 +1951,9 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             tempVar = createTEMP("bool")
             regName2 = fetchVar(tempVar)
             
-            # MOV regName2 regName
-            URCL.append(["MOV", regName2, regName])
+            if regName2 != regName:
+                # MOV regName2 regName
+                URCL.append(["MOV", regName2, regName])
             
             # delete new TEMP var
             delete(tempVar)
@@ -2001,8 +2006,9 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             tempVar = createTEMP("bool")
             regName2 = fetchVar(tempVar)
             
-            # MOV regName2 regName
-            URCL.append(["MOV", regName2, regName])
+            if regName2 != regName:
+                # MOV regName2 regName
+                URCL.append(["MOV", regName2, regName])
             
             # delete new TEMP var
             delete(tempVar)
