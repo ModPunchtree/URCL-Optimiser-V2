@@ -647,24 +647,7 @@ def preprocess(code: list):
                                 
                                 # get list of functionInputs
                                 functionInputs = funcNames[funcNames3.index(token)][3]
-                                
-                                # replace input vars in inline
-                                i = 0
-                                while i < len(inline):
-                                    token69 = inline[i]
-                                    if token69.startswith(functionInputs):
-                                        x = 0 # index
-                                        y = 0 # length
-                                        for j in range(len(functionInputs)):
-                                            if token69.startswith(functionInputs[j]):
-                                                if len(functionInputs[j]) > y:
-                                                    y = len(functionInputs[j])
-                                                    x = j
-                                        
-                                        inline = inline[: i] + callerInputs[x] + inline[i + 1: ]
-                                        stop = 1
-                                        #inline[i] = callerInputs[x]
-                                    i += 1
+                                functionInputTypes = funcNames[funcNames3.index(token)][2]
                                 
                                 # find current scope
                                 # index + 1 is the index that the scope should be found for
@@ -675,7 +658,7 @@ def preprocess(code: list):
                                 while i != goal:
                                     if i > 0:
                                         if (code[i] in funcNames3) and (code[i - 1] in types):
-                                            scope.append(code[i])
+                                            scope.append(code[i][: code[i].index("___")])
                                             newFunc = True
                                             i += 1
                                         elif code[i] == "{":
@@ -702,6 +685,54 @@ def preprocess(code: list):
                                         i += 1
                                 inlineScope = "___" + "___".join(filter(foo, scope))
                                 
+                                # create substitute vars for callerInputs
+                                equivalentInput = []
+                                for z in range(len(callerInputs)):
+                                    var = callerInputs[z]
+                                    varType = functionInputTypes[z]
+                                    
+                                    if (len(var) > 1) or ((not(var[0][0].isnumeric())) and (not(var[0].startswith("'")))):
+                                    
+                                        # create a new unique var with scope
+                                        num = 0
+                                        while True:
+                                            tempVar = f"__uniqueVar{num}"
+                                            if (tempVar not in varNames) and (tempVar not in varNames2):
+                                                break
+                                            num += 1
+                                        tempVar += inlineScope
+                                        varNames.append(tempVar)
+                                        varNames2.append(tempVar[: tempVar.index("___")])
+                                        variableTypes.append(varType)
+                                        
+                                        # prepend ["type", "var", ";"] to inline
+                                        inline = [varType, tempVar, "="] + var + [";"] + inline
+                                        
+                                        # add new var as a substitute for the func input
+                                        equivalentInput.append([tempVar])
+                                        
+                                    else:
+                                        # if var is a single number or char, append directly
+                                        equivalentInput.append(var)
+                                    
+                                # replace input vars in inline
+                                i = 0
+                                while i < len(inline):
+                                    token69 = inline[i]
+                                    if token69.startswith(functionInputs):
+                                        x = 0 # index
+                                        y = 0 # length
+                                        for j in range(len(functionInputs)):
+                                            if token69.startswith(functionInputs[j]):
+                                                if len(functionInputs[j]) > y:
+                                                    y = len(functionInputs[j])
+                                                    x = j
+                                        
+                                        inline = inline[: i] + equivalentInput[x] + inline[i + 1: ]
+                                        stop = 1
+                                        #inline[i] = callerInputs[x]
+                                    i += 1
+                                
                                 # get return type
                                 returnType = code[indexStart - 1]
                                 
@@ -717,10 +748,14 @@ def preprocess(code: list):
                                 varNames2.append(tempVar[: tempVar.index("___")])
                                 variableTypes.append(returnType)
                                 
-                                callerInputs = [i[0] for i in callerInputs]
+                                callerInputs = ["".join(i) for i in callerInputs]
                                 
                                 # create list of all vars created in inline (rename scopes too?)
                                 createdVars = []
+                                """for var in equivalentInput:
+                                    if len(var) == 1:
+                                        if not(var[0].startswith("'") or var[0].isnumeric()):
+                                            createdVars.append(var[0])"""
                                 oldFuncNames = [] # list of old func names
                                 newFuncNames = [] # list of new func names
                                 oldvarNames = varNames.copy()
@@ -733,12 +768,17 @@ def preprocess(code: list):
                                         elif token69 in varNames:
                                             num = 0
                                             while True:
+                                                
+                                                
                                                 inline[i] = token69[: token69.index("___")] + str(num) + inlineScope
                                                 
                                                 if token69[: token69.index("___")] + str(num) + inlineScope not in oldvarNames:
                                                     varNames.append(token69[: token69.index("___")] + str(num) + inlineScope)
                                                     varNames2.append(token69[: token69.index("___")] + str(num))
                                                     variableTypes.append(variableTypes[varNames.index(token69)])
+                                                    
+                                                    if token69 in equivalentInput:
+                                                        createdVars.index()
                                                     break
                                                 else:
                                                     num += 1
@@ -778,6 +818,10 @@ def preprocess(code: list):
                                             createdVars.append(inline[i])
                                         elif (inline[i] in varNames) and (inline[i - 1] == "del"):
                                             createdVars.pop(createdVars.index(inline[i]))
+                                            stop = 1
+                                            stop = 1
+                                            stop = 1
+                                            stop = 1
                                 
                                 # replace moved function calls with new function names
                                 for i in range(len(inline)):
@@ -814,6 +858,12 @@ def preprocess(code: list):
                                 # append ["del", "var", ";"] for all vars in createdVars
                                 for var in createdVars:
                                     inline += ["del", var, ";"]
+                                    
+                                """# append ["del", "var", ";"] for all vars in equivalentInput that are not number/char
+                                for var in equivalentInput:
+                                    if len(var) == 1:
+                                        if not(var[0].startswith("'") or var[0].isnumeric()):
+                                            inline += ["del", var[0], ";"]"""
                                 
                                 # prepend ["returnType", "newVar", ";"] to inline
                                 inline = [returnType, tempVar, ";"] + inline
