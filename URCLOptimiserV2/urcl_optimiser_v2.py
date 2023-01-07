@@ -2600,6 +2600,20 @@ def duplicateLOD(code: list):
                     if line2[0] in write1MinusLOD:
                         if line2[1] == reg:
                             break
+                    elif line2[0] == "STR":
+                        if line2[1] == target:
+                            break
+                        elif line2[1].startswith("R"):
+                            break
+                    elif line2[0] == "LSTR":
+                        if line2[1] == target:
+                            break
+                        elif line2[2] == target:
+                            break
+                        elif line2[1].startswith("R"):
+                            break
+                        elif line2[2].startswith("R"):
+                            break
                     elif line2[0] == "LOD":
                         if (line2[1] == reg) and (line2[2] == target):
                             code[index1 + 1 + index2] = [""]

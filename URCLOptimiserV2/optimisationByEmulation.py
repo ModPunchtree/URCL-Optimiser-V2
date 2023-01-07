@@ -817,7 +817,13 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
     if appendHLT:
         resultInstructions.append(["HLT"])
 
-    if (len(resultInstructions) > cycles) or ((resultInstructions == codeBlock) and (len(resultInstructions) == cycles)):
+    # fix heapLocations in codeBlock
+    for index, line in enumerate(codeBlock):
+        if line[0] == "STR":
+            if line[1].isnumeric():
+                codeBlock[index][1] = f"M{int(line[1]) + M0}"
+
+    if (len(resultInstructions) >= cycles):# or ((resultInstructions == codeBlock) and (len(resultInstructions) == cycles)):
         raise Exception("Optimised code is worse than the initial codeblock")
 
     # convert R29 back into SP
