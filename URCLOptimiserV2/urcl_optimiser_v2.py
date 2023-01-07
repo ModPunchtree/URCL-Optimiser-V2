@@ -2384,7 +2384,7 @@ def inverseBranches(code: list):
     return code, success
 
 ### Pointless Writes
-def pointlessWrites(code: list, MINREG: int):
+def pointlessWrites(code: list, MINREG: int, totalHeap: int, M0: int):
     
     success = False
     
@@ -2540,6 +2540,101 @@ def pointlessWrites(code: list, MINREG: int):
             
             code, success2 = removeEmptyLines(code)
             success |= success2
+    
+    # remove write to SP if unused
+    reg = "SP"
+    useful = False
+    for line in code:
+        if (line[0] in read2and3) or (line[0] in read2):
+            if reg in line[2:]:
+                useful = True
+                break
+        elif (line[0] in read1and2and3) or (line[0] in read1) or (line[0] in read1and2):
+            if reg in line:
+                useful = True
+                break
+        elif line[0] in ("CAL", "RET", "PSH", "POP"):
+            useful = True
+            break
+        
+    if not useful:
+        for index, line in enumerate(code):
+            if line[0] in write1:
+                if line[1] == reg:
+                    if line[0] in ("HRSR", "HPOP", "POP"):
+                        pass
+                    else:
+                        code[index] = [""]
+    
+    # pointless heap writes
+    bad = False
+    for index, line in enumerate(code):
+        if line[0] == "LLOD":
+            bad = True
+            break
+    
+    if not bad:
+        usefulHeap = []
+        uselessHeap = []
+        for index, line in enumerate(code):
+            if line[0] == "STR":
+                if line[1].startswith("M"):
+                    target = line[1]
+                    bad = False
+                elif line[1][0].isnumeric():
+                    target = f"M{int(line[1], 0)}"
+                    if M0 == -1:
+                        bad = True
+                    else:
+                        bad = False
+                else:
+                    bad = False
+                
+                if target in usefulHeap:
+                    bad = True
+                elif target in uselessHeap:
+                    code[index] = [""]
+                    bad = True
+                
+                targetNum = int(target[1: ], 0)
+                
+                if targetNum >= totalHeap:
+                    bad = True
+                    
+                if not bad:
+                    # find if target is used
+                    for line2 in code:
+                        useful = False
+                        if line2[0] == "LOD":
+                            target2 = line2[2]
+                            if target2 == target:
+                                useful = True
+                                break
+                            elif target2.startswith("R"):
+                                useful = True
+                                break
+                            elif target2[0].isnumeric():
+                                num = int(target2, 0)
+                                if M0 == -1:
+                                    useful = True
+                                    break
+                                if (num >= M0) and (num < (totalHeap + M0)):
+                                    target2 = f"M{int(target2, 0)}"
+                                    if target2 == target:
+                                        useful = True
+                                        break
+                            elif target2 == "SP":
+                                useful = True
+                                break
+                            
+                    if not useful:
+                        uselessHeap.append(target)
+                        code[index] = [""]
+                    else:
+                        usefulHeap.append(target)
+                            
+    code, success2 = removeEmptyLines(code)
+    success |= success2
     
     return code, success
 

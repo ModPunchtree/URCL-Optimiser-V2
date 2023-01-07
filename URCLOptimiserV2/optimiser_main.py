@@ -126,9 +126,11 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20, compiled = F
             overallSuccess |= success
             optimisationCount += int(success)
             
-            code, success = pointlessWrites(code, MINREG)
+            code, success = pointlessWrites(code, MINREG, int(MINHEAP, 0) + int(MINSTACK, 0), M0)
             overallSuccess |= success
             optimisationCount += int(success)
+            
+            
             
             code, success = duplicateLOD(code)
             overallSuccess |= success
