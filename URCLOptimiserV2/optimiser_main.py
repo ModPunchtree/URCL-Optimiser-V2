@@ -67,10 +67,9 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20, compiled = F
     if code[-1: ] not in ([["HLT"]], [["JMP"]], [["RET"]]):
         code.append(["HLT"])
 
-    def ruleBasedOptimisations(code, MINREG):
+    def ruleBasedOptimisations(code, MINREG, optimisationCount):
         
         overallSuccess = True
-        optimisationCount = 0
         while overallSuccess == True:
             
             overallSuccess = False
@@ -341,7 +340,7 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20, compiled = F
         
         overallSuccess = False
         
-        code, MINREG, optimisationCount = ruleBasedOptimisations(code, MINREG)
+        code, MINREG, optimisationCount = ruleBasedOptimisations(code, MINREG, optimisationCount)
         
         ## Optimisation By Emulation
         code, success = OBE(code, BITS, MINREG, int(MINHEAP, 0), int(MINSTACK, 0), maxCycles, M0, MAXBLOCKSIZE)
