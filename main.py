@@ -168,7 +168,7 @@ async def on_message(message):
             
             # code is now ready for optimisation
             
-            code2, optimisationCount = optimiseURCL(code2, 500, 0, 20)
+            code2, optimisationCount = optimiseURCL(code2, 500, 0, 20, True)
             
             result = ""
             for line in code2:
