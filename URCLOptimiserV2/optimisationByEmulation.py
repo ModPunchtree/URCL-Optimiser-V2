@@ -343,6 +343,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
         
         # fetch operands (current value in the heap)
         if instruction == "LOD":
+            cycles += 1
             if operands[2].startswith("M"):
                 operands[2] = str(HEAP[int(operands[2][1: ], 0)])
             elif operands[2][0].isnumeric():
@@ -350,7 +351,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
             else:
                 raise Exception("Invalid LOD location")
         elif instruction == "LLOD":
-            cycles += 1
+            cycles += 2
             if operands[2].startswith("M") and operands[3][0].isnumeric():
                 instruction = "LOD"
                 operands[2] = str(HEAP[int(operands[2][1: ], 0) + int(operands[3], 0)])
@@ -448,12 +449,16 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
             case "BNC":
                 answer = (int(operands[2], 0) + int(operands[3], 0)) <= MAX
             case "MLT":
+                cycles += 1
                 answer = (int(operands[2], 0) * int(operands[3], 0)) & MAX
             case "UMLT":
+                cycles += 1
                 answer = ((int(operands[2], 0) * int(operands[3], 0)) & (MAX << BITS)) >> BITS
             case "DIV":
+                cycles += 1
                 answer = int(operands[2], 0) // int(operands[3], 0)
             case "MOD":
+                cycles += 1
                 answer = int(operands[2], 0) % int(operands[3], 0)
             case "BSR":
                 answer = int(operands[2], 0) >> int(operands[3], 0)
@@ -583,6 +588,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
             REG[int(operands[1][1: ], 0)] = answer
             initialisedREG[int(operands[1][1: ], 0)] = True
         elif instruction == "STR":
+            cycles += 1
             try:
                 HEAP[int(operands[1], 0)] = answer
                 initialisedHEAP2[int(operands[1], 0)] = True
@@ -590,7 +596,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
                 HEAP[int(operands[1][1: ], 0)] = answer
                 initialisedHEAP2[int(operands[1][1: ], 0)] = True
         elif instruction == "LSTR":
-            cycles += 1
+            cycles += 2
             if operands[1].startswith("M"):
                 HEAP[int(operands[1][1: ], 0) + int(operands[2], 0)] = answer
                 initialisedHEAP2[int(operands[1][1: ], 0) + int(operands[2], 0)] = True
@@ -601,7 +607,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
                 HEAP[int(operands[1], 0) + int(operands[2], 0)] = answer
                 initialisedHEAP2[int(operands[1], 0) + int(operands[2], 0)] = True
         elif instruction == "CPY":
-            cycles += 1
+            cycles += 2
             try:
                 HEAP[int(operands[1][1: ], 0)] = answer
                 initialisedHEAP2[int(operands[1][1: ], 0)] = True
@@ -825,7 +831,17 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
             if line[1].isnumeric():
                 codeBlock[index][1] = f"M{int(line[1]) + M0}"
 
-    if (len(resultInstructions) >= cycles):# or ((resultInstructions == codeBlock) and (len(resultInstructions) == cycles)):
+    # calculate new cost
+    newCost = len(resultInstructions)
+    for line in resultInstructions:
+        if line[0] in ("LOD", "STR", "MLT", "DIV", "UMLT"):
+            newCost += 1
+        elif line[0] in ("LLOD", "LSTR", "CPY"):
+            newCost += 2
+        elif line[0] == "SDIV":
+            newCost += 3
+
+    if (newCost >= cycles) or (resultInstructions == codeBlock):
         raise Exception("Optimised code is worse than the initial codeblock")
 
     # convert R29 back into SP

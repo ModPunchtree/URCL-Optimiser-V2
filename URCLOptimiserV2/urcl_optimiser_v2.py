@@ -3600,9 +3600,217 @@ def shortcutMOV(code: list):
                     else:
                         writeTargets.append(line2[1])
                         
-                
-    
     code, success = removeEmptyLines(code)
+    
+    return code, success
+
+### dowhileLODSTR
+def dowhileLODSTR(code: list, M0: int, totalHeap: int):
+    
+    success = False
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "HPOP",
+        "HRSR",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    branches = (
+        "BGE",
+        "JMP",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BOD",
+        "BEV",
+        "BLE",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CAL",
+        "HCAL",
+        "RET",
+        "HRET",
+        "HLT",
+        "BRC",
+        "BNC",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    conditionalBranches = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BOD",
+        "BEV",
+        "BLE",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "BRC",
+        "BNC",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    # find code block with no labels and no branches
+    # code block must start with a label
+    # code block must end with a conditional branch
+    # code block must not contain any LOD/LLOD which use register pointers
+    
+    for index, line in enumerate(code):
+        if line[0].startswith("."):
+            label = line[0]
+            labelIndex = index
+            codeBlock = [code[index].copy()]
+            bad = False
+            for index2, line2 in enumerate(code[index + 1: ]):
+                if line2[0].startswith("."):
+                    bad = True
+                    break
+                elif line2[0] in conditionalBranches:
+                    if line2[1] == label:
+                        # good
+                        break
+                    else:
+                        bad = True
+                        break
+            
+            if not bad:
+                # find LOD instructions that use a specific heap location or an immedate inside of the heap
+                    # now try to find a corresponding STR instruction after the 
+                pass
     
     return code, success
 

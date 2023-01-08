@@ -150,9 +150,13 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20, compiled = F
             overallSuccess |= success
             optimisationCount += int(success)
             
-            code, success = shortcutMOV(code)###########################
+            code, success = shortcutMOV(code)
             overallSuccess |= success
             optimisationCount += int(success)
+            
+            """code, success = dowhileLODSTR(code)
+            overallSuccess |= success
+            optimisationCount += int(success)"""
             
             if compiled:
                 code, success = HRSRHSAV(code)
