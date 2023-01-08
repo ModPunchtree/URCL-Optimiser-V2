@@ -60,12 +60,8 @@ def preprocess(code: list):
                 if char != '"':
                     string.append(f"'{char}'")
                     string.append(",")
-            if string[-1: ] == [","]:
-                string.pop()
             
-            if len(string) == 0:
-                raise Exception(f"Invalid string: {token}")
-            code = code[: index] + string.copy() + code[index + 1: ]
+            code = code[: index] + string.copy() + ["0"] + code[index + 1: ]
         index += 1
     
     """# fill in missing array definition []

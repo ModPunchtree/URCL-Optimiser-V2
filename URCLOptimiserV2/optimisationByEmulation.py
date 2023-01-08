@@ -347,6 +347,8 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
                 operands[2] = str(HEAP[int(operands[2][1: ], 0)])
             elif operands[2][0].isnumeric():
                 operands[2] = str(HEAP[int(operands[2], 0)])
+            else:
+                raise Exception("Invalid LOD location")
         elif instruction == "LLOD":
             cycles += 1
             if operands[2].startswith("M") and operands[3][0].isnumeric():

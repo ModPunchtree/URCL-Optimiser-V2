@@ -1,5 +1,6 @@
 
 from URCLOptimiserV2.optimisationByEmulation import optimisationByEmulation
+from copy import deepcopy
 
 ########################################################################################################
 
@@ -363,6 +364,58 @@ def standardiseSymbols(code: list):
     
     return code, success
 
+### Inline Function Calls
+def inlineFunctionCalls(code: list):
+    
+    success = False
+    
+    for index, line in enumerate(code):
+        if line[0].endswith("_FUNCSTART"):
+            startLabel = line[0]
+            start = index
+            endLabel = startLabel[: -len("START")] + "END"
+            end = code.index([endLabel])
+            
+            codeBlock = deepcopy(code[start + 1: end])
+            
+            # create unique label and append to the end of codeBlock
+            num = 0
+            while True:
+                name = f".uniqueLabel_{num}"
+                if [name] not in code:
+                    break
+                num += 1
+            codeBlock.append([name])
+            
+            # replace HRET in codeBlock with JMP (keep track of scope)
+            scopeDepth = 0
+            for i, line2 in enumerate(codeBlock):
+                if (line2[0] == "HRET") and (scopeDepth == 0):
+                    codeBlock[i] = ["JMP", name]
+                elif line2[0].endswith("_FUNCSTART"):
+                    scopeDepth += 1
+                elif line2[0].endswith("_FUNCEND"):
+                    scopeDepth -= 1
+            
+            if scopeDepth != 0:
+                raise Exception("Failed to find end of function call")
+            
+            # inline codeBlock (replacing each ["HCAL", ".func_FUNCSTART"])
+            for index2, line2 in enumerate(code):
+                if line2[0] == "HCAL":
+                    target = line2[1]
+                    if target == startLabel:
+                        code = code[: index2] + codeBlock + code[index2 + 1: ]
+                        success = True
+                        return code, success
+            
+            # if not found, remove original func
+            code = code[: start] + code[end + 1: ]
+            success = True
+            return code, success
+    
+    return code, success
+
 ### Remove Unused Labels
 def removeUnusedLabels(code: list):
     
@@ -453,9 +506,10 @@ def removeUnreachableCode(code: list):
                     if not code[pointer1][0].startswith("."):
                         code.pop(pointer1)
                         success = True
-                        return removeUnreachableCode(code)[0], success
                     else:
                         break
+                if success:
+                    return removeUnreachableCode(code)[0], success
                 
     return code, success
 
@@ -497,9 +551,10 @@ def calculateMINREG(code: list):
     for line in code:
         for token in line[1: ]:
             if token.startswith("R"):
-                number = int(token[1: ], 0)
-                if number > MINREG:
-                    MINREG = number
+                if token[1].isnumeric():
+                    number = int(token[1: ], 0)
+                    if number > MINREG:
+                        MINREG = number
 
     return MINREG
 
@@ -1704,7 +1759,9 @@ def noImmediateFolding(code: list, BITS: int):
 
     optimisable2OpInstructions = (
         "MOV",
-        "CPY"
+        "CPY",
+        "BRZ",
+        "BNZ"
     )
 
     MAX = 2**BITS - 1
@@ -1843,10 +1900,29 @@ def noImmediateFolding(code: list, BITS: int):
                 match line[0]:
                     case "MOV":
                         answer = [""]
-                        
                     case "CPY":
                         answer = [""]
+                    case "BRZ":
+                        answer = line
+                    case "BNZ":
+                        answer = line
+                        
+                code[index] = answer
+                success = True
                     
+            elif line[2].startswith("'"):
+                
+                answer = [f"Unrecognised Instruction: {line[0]}"]
+                match line[0]:
+                    case "MOV":
+                        answer = line
+                    case "CPY":
+                        answer = line
+                    case "BRZ":
+                        answer = [""]
+                    case "BNZ":
+                        answer = ["JMP", line[1]]
+                
                 code[index] = answer
                 success = True
         
@@ -2209,12 +2285,29 @@ def writeBeforeRead(code: list):
         "SBGE"
     )
     
+    unconditionalBranches = (
+        "JMP",
+        "HLT",
+        "CAL",
+        "HCAL",
+        "RET",
+        "HRET"
+    )
+    
     for index, line in enumerate(code):
         if line[0] in write1:
             writeTarget = line[1]
+            seenLabels = []
             for index2, line2 in enumerate(code[index + 1: ]):
                 if line2[0] in branches:
-                    break
+                    if line2[0] not in unconditionalBranches:
+                        if line2[1] not in seenLabels:
+                            break
+                    else:
+                        break
+                
+                elif line2[0].startswith("."):
+                    seenLabels.append(line2[0])
                 
                 elif line2[0] in read2and3:
                     if line2[2] == writeTarget:
@@ -2253,6 +2346,297 @@ def writeBeforeRead(code: list):
                         success = True
     
     code, success2 = removeEmptyLines(code)
+    
+    return code, success
+
+### write before read (Full)
+def writeBeforeReadFull(code: list):
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "HPOP",
+        "HRSR",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    branches = (
+        "BGE",
+        "JMP",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BOD",
+        "BEV",
+        "BLE",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CAL",
+        "HCAL",
+        "RET",
+        "HRET",
+        "HLT",
+        "BRC",
+        "BNC",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    unconditionalBranches = (
+        "JMP",
+        "HLT",
+        "CAL",
+        "HCAL",
+        "RET",
+        "HRET"
+    )
+    
+    for index1, line1 in enumerate(code):
+        if line1[0] in write1:
+            writeTarget = line1[1]
+            needToCheck = [index1 + 1]
+            alreadyChecked = []
+            validReturnList = [False]
+            
+            bad = False
+            
+            while needToCheck:
+                
+                index2 = needToCheck[0]
+                validReturnAddress = validReturnList[0]
+                
+                if index2 not in alreadyChecked:
+                    alreadyChecked.append(index2)
+                
+                while index2 < len(code):
+                    line2 = code[index2]
+                    
+                    if (writeTarget == "SP") and (line2[0] in ("CAL", "RET", "PSH", "POP")):
+                        bad = True
+                        break
+                    
+                    elif (line2[0] in branches) and (line2[0] not in unconditionalBranches):
+                        # conditional branch
+                        target = line2[1]
+                        if not target.startswith("."):
+                            bad = True
+                            break
+                        targetIndex = code.index([target]) + 1
+                        if targetIndex not in alreadyChecked:
+                            if targetIndex not in needToCheck:
+                                needToCheck.append(targetIndex)
+                    
+                    elif line2[0] == "RET":
+                        bad = True
+                        break
+                    
+                    elif line2[0] == "HRET":
+                        if validReturnAddress:
+                            break
+                        else:
+                            bad = True
+                            break
+                    
+                    elif line2[0] == "HLT":
+                        needToCheck.pop(0)
+                        break
+                    
+                    elif line2[0] == "JMP":
+                        # unconditional one-way branch
+                        target = line2[1]
+                        if not target.startswith("."):
+                            bad = True
+                            break
+                        targetIndex = code.index([target]) + 1
+                        if targetIndex not in alreadyChecked:
+                            if targetIndex not in needToCheck:
+                                needToCheck.append(targetIndex)
+                        needToCheck.pop(0)
+                        break
+                    
+                    if line2[0] in read2and3:
+                        if line2[2] == writeTarget:
+                            bad = True
+                            break
+                        if line2[3] == writeTarget:
+                            bad = True
+                            break
+                    
+                    elif line2[0] in read2:
+                        if line2[2] == writeTarget:
+                            bad = True
+                            break
+                    
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == writeTarget:
+                            bad = True
+                            break
+                        if line2[2] == writeTarget:
+                            bad = True
+                            break
+                        if line2[3] == writeTarget:
+                            bad = True
+                            break
+                        
+                    elif line2[0] in read1:
+                        if line2[1] == writeTarget:
+                            bad = True
+                            break
+                    
+                    elif line2[0] in read1and2:
+                        if line2[1] == writeTarget:
+                            bad = True
+                            break
+                        if line2[2] == writeTarget:
+                            bad = True
+                            break
+                    
+                    if line2[0] in write1:
+                        if line2[1] == "PC":
+                            bad = True
+                            break
+                    
+                        elif line2[1] == writeTarget:
+                            needToCheck.pop(0)
+                            break
+                    
+                    index2 += 1
+                
+                if index2 >= len(code):
+                    needToCheck.pop(0)
+                
+                if bad:
+                    break
+                
+            if not bad:
+                code[index1] = [""]
+                stop = 1
+    
+    code, success = removeEmptyLines(code)
     
     return code, success
 
@@ -2893,7 +3277,7 @@ def propagateMOV(code: list):
                 
                 if line2[0].startswith("."):
                     break
-                elif line2[0] in write1:
+                if line2[0] in write1:
                     if (line2[1] == sourceReg) or (line2[1] == targetReg):
                         break
                 elif line2[0] in ("HLT", "RET", "CAL", "JMP", "HCAL", "HRET"):
@@ -2915,6 +3299,310 @@ def fixMOVIMM(code: list):
             if line[2].startswith("R"):
                 code[index][0] = "MOV"
                 success = True
+    
+    return code, success
+
+### Shortcut MOV
+def shortcutMOV(code: list):
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "HPOP",
+        "HRSR",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    branches = (
+        "BGE",
+        "JMP",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BOD",
+        "BEV",
+        "BLE",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CAL",
+        "HCAL",
+        "RET",
+        "HRET",
+        "HLT",
+        "BRC",
+        "BNC",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    for index, line in enumerate(code):
+        if line[0] in write1:
+            a = line[1]
+            
+            writeTargets = []
+            readTargets = []
+            
+            for index2, line2 in enumerate(code[index + 1: ]):
+                if line2[0] == "MOV":
+                    if line2[2] == a:
+                        d = line2[1]
+                        if d in writeTargets:
+                            break
+                        
+                        # second region
+                        good = False
+                        for index3, line3 in enumerate(code[index + 1 + index2 + 1: ]):
+                            if line3[0] in write1:
+                                if line3[1] == a:
+                                    # good
+                                    good = True
+                                    break
+                            
+                            if line3[0] in read2and3:
+                                if line3[2] == a:
+                                    break
+                                if line3[3] == a:
+                                    break
+                                
+                            elif line3[0] in read2:
+                                if line3[2] == a:
+                                    break
+                            
+                            elif line3[0] in read1and2and3:
+                                if line3[1] == a:
+                                    break
+                                if line3[2] == a:
+                                    break
+                                if line3[3] == a:
+                                    break
+                            
+                            elif line3[0] in read1:
+                                if line3[1] == a:
+                                    break
+                            
+                            elif line3[0] in read1and2:
+                                if line3[1] == a:
+                                    break
+                                if line3[2] == a:
+                                    break
+                                
+                        if good:
+                            if line3[0] in read2and3:
+                                if line3[2] == a:
+                                    code[index + 1 + index2 + 1 + index3][2] = d
+                                    stop = 1
+                                if line3[3] == a:
+                                    code[index + 1 + index2 + 1 + index3][3] = d
+                                    stop = 1
+                                
+                            elif line3[0] in read2:
+                                if line3[2] == a:
+                                    code[index + 1 + index2 + 1 + index3][2] = d
+                                    stop = 1
+                            
+                            elif line3[0] in read1and2and3:
+                                if line3[1] == a:
+                                    code[index + 1 + index2 + 1 + index3][1] = d
+                                    stop = 1
+                                if line3[2] == a:
+                                    code[index + 1 + index2 + 1 + index3][2] = d
+                                    stop = 1
+                                if line3[3] == a:
+                                    code[index + 1 + index2 + 1 + index3][3] = d
+                                    stop = 1
+                            
+                            elif line3[0] in read1:
+                                if line3[1] == a:
+                                    code[index + 1 + index2 + 1 + index3][1] = d
+                                    stop = 1
+                            
+                            elif line3[0] in read1and2:
+                                if line3[1] == a:
+                                    code[index + 1 + index2 + 1 + index3][1] = d
+                                    stop = 1
+                                if line3[2] == a:
+                                    code[index + 1 + index2 + 1 + index3][2] = d
+                                    stop = 1
+                            
+                            code[index][1] = d
+                            code[index + 1 + index2] = [""]
+                        break
+                
+                if line2[0].startswith("."):
+                    break
+                elif line2[0] in branches:
+                    break
+                
+                if line2[0] in read2and3:
+                    if line2[2] == a:
+                        break
+                    readTargets.append(line2[2])
+                    if line2[3] == a:
+                        break
+                    readTargets.append(line2[3])
+                    
+                elif line2[0] in read2:
+                    if line2[2] == a:
+                        break
+                    readTargets.append(line2[2])
+                
+                elif line2[0] in read1and2and3:
+                    if line2[1] == a:
+                        break
+                    readTargets.append(line2[1])
+                    if line2[2] == a:
+                        break
+                    readTargets.append(line2[2])
+                    if line2[3] == a:
+                        break
+                    readTargets.append(line2[3])
+                
+                elif line2[0] in read1:
+                    if line2[1] == a:
+                        break
+                    readTargets.append(line2[1])
+                
+                elif line2[0] in read1and2:
+                    if line2[1] == a:
+                        break
+                    readTargets.append(line2[1])
+                    if line2[2] == a:
+                        break
+                    readTargets.append(line2[2])
+                
+                if line2[0] in write1:
+                    if line2[1] == a:
+                        break
+                    else:
+                        writeTargets.append(line2[1])
+                        
+                
+    
+    code, success = removeEmptyLines(code)
     
     return code, success
 
@@ -3729,10 +4417,18 @@ def STRLOD(code: list):
             ramTarget = line[1]
             regTarget = line[2]
             
+            if index == 31:
+                stop = 1
+                stop = 1
+                stop = 1
+                stop = 1
+            
             for index2, line2 in enumerate(code[index + 1: ]):
                 if line2[0] == "LOD":
                     if (line2[1] == regTarget) and (line2[2] == ramTarget):
                         code[index + 1 + index2] = [""]
+                    elif line2[2] == ramTarget:
+                        code[index + 1 + index2] = ["MOV", line2[1], regTarget]
                 
                 elif line2[0] == "STR":
                     if (line2[1] == ramTarget) or (line2[1].startswith("R")):

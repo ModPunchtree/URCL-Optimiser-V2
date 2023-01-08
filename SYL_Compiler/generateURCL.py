@@ -1529,7 +1529,7 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
                 deleteExactLocals()
                 
                 # evict all registers
-                evictRegisters(currentFuncName)
+                #evictRegisters(currentFuncName)
                 
                 # get rid of "while" scope
                 scope.pop()
@@ -2358,7 +2358,8 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             ["BRL", "~-2", "R2", "R4"],
             ["SUB", "R1", "4095", "R2"],
             ["ADD", "R1", "R1", "#bottomOfDynamic"],
-            ["HRET"]
+            ["HRET"],
+            [".malloc_FUNCEND"]
         ]
         
         URCL += malloc
@@ -2374,7 +2375,8 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             ["DEC", "SP", "SP"],
             ["BNE", "~-2", "SP", "R1"],
             ["ADD", "R1", "R2", "#bottomOfDynamic"],
-            ["HRET"]
+            ["HRET"],
+            [".fmalloc_FUNCEND"]
         ]
         
         URCL += fmalloc
@@ -2390,7 +2392,8 @@ def generateURCL(code: list, varNames: list, funcNames: list, arrNames: list, fu
             ["STR", "R1", "0"],
             ["DEC", "R1", "R1"],
             ["BNE", "~-2", "R1", "R2"],
-            ["HRET"]
+            ["HRET"],
+            [".free_FUNCEND"]
         ]
         
         URCL += free

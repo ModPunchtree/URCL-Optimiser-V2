@@ -32,6 +32,12 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20, compiled = F
 
     code, success = standardiseSymbols(code)
 
+    if compiled:
+        success = True
+        while success:
+            success = False
+            code, success = inlineFunctionCalls(code)
+
     code, success = removeUnusedLabels(code)
 
     code, success = removeMultiLabels(code)
@@ -41,6 +47,8 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20, compiled = F
     code, success = removeUnreachableCode(code)
 
     code, MINREG, success = reduceRegisters(code)
+
+    # good
 
     #########################################
 
@@ -114,7 +122,7 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20, compiled = F
             overallSuccess |= success
             optimisationCount += int(success)
             
-            code, success = writeBeforeRead(code)
+            code, success = writeBeforeReadFull(code)
             overallSuccess |= success
             optimisationCount += int(success)
             
@@ -130,8 +138,6 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20, compiled = F
             overallSuccess |= success
             optimisationCount += int(success)
             
-            
-            
             code, success = duplicateLOD(code)
             overallSuccess |= success
             optimisationCount += int(success)
@@ -141,6 +147,10 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20, compiled = F
             optimisationCount += int(success)
             
             code, success = fixMOVIMM(code)
+            overallSuccess |= success
+            optimisationCount += int(success)
+            
+            code, success = shortcutMOV(code)###########################
             overallSuccess |= success
             optimisationCount += int(success)
             
@@ -343,6 +353,8 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20, compiled = F
         overallSuccess = False
         
         code, MINREG, optimisationCount = ruleBasedOptimisations(code, MINREG, optimisationCount)
+        
+        #print("\n"*10 + "\n".join([" ".join(i) for i in code]))
         
         ## Optimisation By Emulation
         code, success = OBE(code, BITS, MINREG, int(MINHEAP, 0), int(MINSTACK, 0), maxCycles, M0, MAXBLOCKSIZE)
