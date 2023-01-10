@@ -1,5 +1,6 @@
 
 from URCLOptimiserV2.optimisationByEmulation import optimisationByEmulation
+from URCLOptimiserV2.loopUnraveller import loopUnraveller
 from copy import deepcopy
 
 ########################################################################################################
@@ -3010,6 +3011,9 @@ def pointlessWrites(code: list, MINREG: int, totalHeap: int, M0: int):
                             elif target2 == "SP":
                                 useful = True
                                 break
+                        elif line2[0] == "LLOD":
+                            useful = True
+                            break
                             
                     if not useful:
                         uselessHeap.append(target)
@@ -3604,8 +3608,513 @@ def shortcutMOV(code: list):
     
     return code, success
 
-### dowhileLODSTR
-def dowhileLODSTR(code: list, M0: int, totalHeap: int):
+### STR label LOD
+def STRlabelLOD(code: list, M0: int, totalHeap: int):
+    
+    read2and3 = (
+        "ADD",
+        "NOR",
+        "SUB",
+        "AND",
+        "OR",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE"
+    )
+    
+    read2 = (
+        "RSH",
+        "LOD",
+        "MOV",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "NOT",
+        "SRS",
+        "ABS",
+        "OUT"
+    )
+    
+    read1and2and3 = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BLE",
+        "BRC",
+        "BNC",
+        "LSTR",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    read1 = (
+        "JMP",
+        "PSH",
+        "HPSH",
+        "HSAV",
+        "CAL",
+        "HCAL"
+    )
+    
+    read1and2 = (
+        "STR",
+        "BOD",
+        "BEV",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CPY"
+    )
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "HPOP",
+        "HRSR",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    branches = (
+        "BGE",
+        "JMP",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BOD",
+        "BEV",
+        "BLE",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CAL",
+        "HCAL",
+        "BRC",
+        "BNC",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    conditionalBranches = (
+        "BGE",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BOD",
+        "BEV",
+        "BLE",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "BRC",
+        "BNC",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    # for each label
+    for index, line in enumerate(code):
+        if line[0].startswith("."):
+            label = line[0]
+            
+            badHeap = []
+            badRegisters = []
+            # for each valid LOD after label
+            for index2, line2 in enumerate(code[index + 1: ]):
+                if line2[0] == "LOD":
+                    if (line2[1] not in badRegisters) and (line2[2] not in badHeap) and (not line2[2].startswith("R")):
+                        bad = True
+                        if line2[2][0].isnumeric():
+                            num = int(line2[2], 0)
+                            if M0 == -1:
+                                bad = False
+                            elif (num >= M0) or (num < totalHeap):
+                                bad = False
+                        elif line2[2].startswith("M"):
+                            bad = False
+                            
+                        if not bad:
+                            register = line2[1]
+                            heapLocation = line2[2]
+                            
+                            previousLocations = []
+                            validLocations = []
+                            if index > 0:
+                                if code[index - 1] not in ("HLT", "JMP", "HRET", "RET"):
+                                    previousLocations.append(index - 1)
+                                    validLocations.append(False)
+                            
+                            # find index of every place in code that can go to this label
+                            # if label is found to be used as not a branch address -> bad
+                            for index3, line3 in enumerate(code):
+                                if line3[0] in branches:
+                                    if line3[1] == label:
+                                        if index3 > 0:
+                                            previousLocations.append(index3 - 1)
+                                            validLocations.append(False)
+                                    elif label in line3:
+                                        bad = True
+                                        break
+                                
+                                elif line3[0].startswith("."):
+                                    pass
+                                
+                                # find if label exists in any non-branch
+                                elif label in line3:
+                                    bad = True
+                                    break
+                            
+                            if not bad:
+                                # for every possible previous location
+                                for index5, location in enumerate(previousLocations):
+                                    # for every line before the location (including location)
+                                    for index4, line4 in enumerate(code[: location + 1][: : -1]):
+                                        if line4[0] == "STR":
+                                            # immediate value being written to heap location is not valid
+                                            if (line4[1] == heapLocation) and (line4[2] == register):
+                                                # good
+                                                validLocations[index5] = True
+                                                break
+                                            
+                                            # pointer = bad
+                                            elif line4[1].startswith("R"):
+                                                # bad
+                                                bad = True
+                                                break
+                                            elif line2[0] == "LSTR":
+                                                bad = True
+                                                break
+                                            # find overwritten heap
+                                            elif line4[1][0].isnumeric():
+                                                num = int(line4[1], 0)
+                                                if M0 == -1:
+                                                    bad = True
+                                                elif (num >= M0) and (num < totalHeap):
+                                                    if f"M{num}" == heapLocation:
+                                                        bad = True
+                                                        break
+                                            elif line4[1].startswith("M"):
+                                                if line4[1] == heapLocation:
+                                                    bad = True
+                                                    break
+                                            
+                                        # find overwritten reg
+                                        if line4[0] in write1:
+                                            if line4[1] == register:
+                                                bad = True
+                                                break
+                                        
+                                        if line4[0].startswith("."):
+                                            bad = True
+                                            break
+                                        
+                                if not bad:
+                                    if False not in validLocations:
+                                        # remove unneeded LOD
+                                        code[index + 1 + index2] = [""]
+                
+                # find overwritten heap
+                if line2[0] == "STR":
+                    if line2[1].startswith("R"):
+                        # very bad
+                        break
+                    elif line2[1][0].isnumeric():
+                        num = int(line2[1], 0)
+                        if M0 == -1:
+                            bad = True
+                            break
+                        elif (num >= M0) and (num < totalHeap):
+                            badHeap.append(f"M{num}")
+                    elif line2[1].startswith("M"):
+                        badHeap.append(line2[1])
+                elif line2[0] == "LSTR":
+                    break
+                
+                # find overwritten reg
+                if line2[0] in write1:
+                    badRegisters.append(line2[1])
+                
+    code, success = removeEmptyLines(code)
+    
+    return code, success
+
+### STR branch STR
+def STRbranchSTR(code: list, M0: int, totalHeap: int):
+    
+    success = False
+    
+    write1 = (
+        "ADD",
+        "RSH",
+        "LOD",
+        "NOR",
+        "SUB",
+        "MOV",
+        "IMM",
+        "LSH",
+        "INC",
+        "DEC",
+        "NEG",
+        "AND",
+        "OR",
+        "NOT",
+        "XNOR",
+        "XOR",
+        "NAND",
+        "POP",
+        "HPOP",
+        "HRSR",
+        "MLT",
+        "DIV",
+        "MOD",
+        "BSR",
+        "BSL",
+        "SRS",
+        "BSS",
+        "SETE",
+        "SETNE",
+        "SETG",
+        "SETL",
+        "SETGE",
+        "SETLE",
+        "SETC",
+        "SETNC",
+        "LLOD",
+        "SDIV",
+        "SSETL",
+        "SSETG",
+        "SSETLE",
+        "SSETGE",
+        "ABS",
+        "IN"
+    )
+    
+    branches = (
+        "BGE",
+        "JMP",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BOD",
+        "BEV",
+        "BLE",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CAL",
+        "HCAL",
+        "BRC",
+        "BNC",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE"
+    )
+    
+    # for each valid branch
+    for index1, line1 in enumerate(code):
+        if line1[0] in branches:
+            if line1[1].startswith("."):
+                label = line1[1]
+                
+                bad = True
+                badHeap = []
+                badRegisters = []
+                # for each line going backwards from branch
+                for index2, line2 in enumerate(code[: index1][: : -1]):
+                    if line2[0] == "STR":
+                        if line2[1].startswith("R"):
+                            bad = True
+                            break
+                        elif line2[1].startswith("M"):
+                            if line2[1] in badHeap:
+                                bad = True
+                                break
+                            if line2[2] in badRegisters:
+                                bad = True
+                                break
+                            heapLocation = line2[1]
+                            register = line2[2]
+                            bad = False
+                        elif line2[1][0].isnumeric():
+                            num = int(line2[1], 0)
+                            if M0 == -1:
+                                bad = True
+                                break
+                            if (num >= M0) and (num < totalHeap):
+                                if f"M{num}" in badHeap:
+                                    bad = True
+                                    break
+                                if line2[2] in badRegisters:
+                                    bad = True
+                                    break
+                                heapLocation = f"M{num}"
+                                register = line2[2]
+                                bad = False
+                        else:
+                            bad = True
+                            break
+                        
+                        if not bad:
+                            index3 = code.index([label])
+                            # for code after label
+                            for index4, line4 in enumerate(code[index3 + 1: ]):
+                                if line4[0] == "STR":
+                                    if line4[1] == heapLocation:
+                                        # move original STR to after the branch
+                                        code = code[: index1- 1 - index2].copy() + code[index1 - 1 - index2 + 1: index1 + 1].copy() + [code[index1 - 1 - index2]] + code[index1 + 1: ].copy()
+                                        success = True
+                                        break
+                                
+                                # must not read from heap location
+                                elif line4[0] == "LOD":
+                                    if line4[1].startswith("R"):
+                                        bad = True
+                                        break
+                                    elif line4[1][0].isnumeric():
+                                        num = int(line4[1], 0)
+                                        if M0 == -1:
+                                            bad = True
+                                            break
+                                        if (num >= M0) and (num < totalHeap):
+                                            if f"M{num}" == heapLocation:
+                                                bad = True
+                                                break
+                                    elif line4[1].startswith("M"):
+                                        if line4[1] == heapLocation:
+                                            bad = True
+                                            break
+                                    else:
+                                        bad = True
+                                        break
+                                    
+                                elif line4[0] == "LLOD":
+                                    bad = True
+                                    break
+                                
+                                # branch = bad
+                                if (line4[0] in branches) or (line4[0] in ("HLT", "HRET", "RET")):
+                                    bad = True
+                                    break
+                                
+                                # label = bad
+                                if line4[0].startswith("."):
+                                    bad = True
+                                    break
+                    
+                    # no pointers
+                    elif line2[0] == "LOD":
+                        if line2[2].startswith("R"):
+                            bad = True
+                            break
+                        elif line2[2][0].isnumeric():
+                            num = int(line2[2], 0)
+                            if M0 == -1:
+                                bad = True
+                                break
+                            if (num >= M0) and (num < totalHeap):
+                                badHeap.append(f"M{num}")
+                        elif line2[2].startswith("M"):
+                            badHeap.append(line2[2])
+                        else:
+                            bad = True
+                            break
+                    
+                    elif line2[0] in ("LLOD", "LSTR"):
+                        bad = True
+                        break
+                    
+                    # keep track of what registers are being overwritten
+                    if line2[0] in write1:
+                        badRegisters.append(line2[1])
+                    
+                    # branch = bad
+                    if (line2[0] in branches) or (line2[0] in ("HLT", "HRET", "RET")):
+                        bad = True
+                        break
+                    
+                    # label = bad
+                    if line2[0].startswith("."):
+                        bad = True
+                        break
+    
+    return code, success
+
+### Propagate Conditional Branch
+def propagateConditionalBranch(code: list):
     
     success = False
     
@@ -3763,54 +4272,73 @@ def dowhileLODSTR(code: list, M0: int, totalHeap: int):
         "SBGE"
     )
     
-    conditionalBranches = (
-        "BGE",
-        "BRL",
-        "BRG",
-        "BRE",
-        "BNE",
-        "BOD",
-        "BEV",
-        "BLE",
-        "BRZ",
-        "BNZ",
-        "BRN",
-        "BRP",
-        "BRC",
-        "BNC",
-        "SBRL",
-        "SBRG",
-        "SBLE",
-        "SBGE"
-    )
-    
-    # find code block with no labels and no branches
-    # code block must start with a label
-    # code block must end with a conditional branch
-    # code block must not contain any LOD/LLOD which use register pointers
-    
     for index, line in enumerate(code):
-        if line[0].startswith("."):
-            label = line[0]
-            labelIndex = index
-            codeBlock = [code[index].copy()]
-            bad = False
-            for index2, line2 in enumerate(code[index + 1: ]):
-                if line2[0].startswith("."):
-                    bad = True
-                    break
-                elif line2[0] in conditionalBranches:
-                    if line2[1] == label:
-                        # good
-                        break
-                    else:
-                        bad = True
-                        break
+        if line[0] in ("BNZ", "BNE"):
+            register = ""
+            if line[0] == "BNZ":
+                if line[2].startswith("R"):
+                    register = line[2]
+                    value = "0"
+            else:
+                if line[2].startswith("R") and line[3][0].isnumeric():
+                    register = line[2]
+                    value = str(int(line[3], 0))
+                elif line[3].startswith("R") and line[2][0].isnumeric():
+                    register = line[3]
+                    value = str(int(line[2], 0))
             
-            if not bad:
-                # find LOD instructions that use a specific heap location or an immedate inside of the heap
-                    # now try to find a corresponding STR instruction after the 
-                pass
+            if register:
+                # for code after branch
+                for index2, line2 in enumerate(code[index + 1: ]):
+                    
+                    # find if register is read
+                    if line2[0] in read2and3:
+                        if line2[2] == register:
+                            code[index + 1 + index2][2] = value
+                            success = True
+                        if line2[3] == register:
+                            code[index + 1 + index2][3] = value
+                            success = True
+                    
+                    elif line2[0] in read2:
+                        if line2[2] == register:
+                            code[index + 1 + index2][2] = value
+                            success = True
+                    
+                    elif line2[0] in read1and2and3:
+                        if line2[1] == register:
+                            code[index + 1 + index2][1] = value
+                            success = True
+                        if line2[2] == register:
+                            code[index + 1 + index2][2] = value
+                            success = True
+                        if line2[3] == register:
+                            code[index + 1 + index2][3] = value
+                            success = True
+                    
+                    elif line2[0] in read1:
+                        if line2[1] == register:
+                            code[index + 1 + index2][1] = value
+                            success = True
+                    
+                    elif line2[0] in read1and2:
+                        if line2[1] == register:
+                            code[index + 1 + index2][1] = value
+                            success = True
+                        if line2[2] == register:
+                            code[index + 1 + index2][2] = value
+                            success = True
+                    
+                    # if overwrite -> bad
+                    if line2[0] in write1:
+                        if line2[1] == register:
+                            break
+                    
+                    # branch or label -> bad
+                    elif line2[0].startswith("."):
+                        break
+                    elif line2[0] in branches:
+                        break
     
     return code, success
 
@@ -4019,11 +4547,119 @@ def HRSRHSAV(code: list):
     
     return code, success
 
+## Loop Unraveller
+def LU(code: list, BITS: int, MINREG: int, MINHEAP: int, MINSTACK: int, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20):
+    
+    # search code for codeblocks
+    # a codeblock must contain a conditional branch
+    
+    #MAXBLOCKSIZE *= 2
+    
+    success = False
+    
+    branches = (
+        "BGE",
+        "JMP",
+        "BRL",
+        "BRG",
+        "BRE",
+        "BNE",
+        "BOD",
+        "BEV",
+        "BLE",
+        "BRZ",
+        "BNZ",
+        "BRN",
+        "BRP",
+        "CAL",
+        "RET",
+        "BRC",
+        "BNC",
+        "SBRL",
+        "SBRG",
+        "SBLE",
+        "SBGE",
+        "HCAL",
+        "HRET"
+    )
+    
+    # try snippets of code
+    for loop in range(MAXBLOCKSIZE):
+        snippetLength = MAXBLOCKSIZE - loop
+        
+        if snippetLength > 2:
+            for index in range(len(code[: -(snippetLength - 1)])):
+                opcodes = tuple(i[0] for i in code[index: index + snippetLength])
+                bad = True
+                for i in branches:
+                    if i in opcodes:
+                        bad = False
+                        break
+                    elif i == "HLT":
+                        break
+                
+                if index > 0:
+                    if code[index - 1][0].startswith("."):
+                        bad = True
+                if code[index + snippetLength - 1][0].startswith("."):
+                    bad = True
+                if not bad:
+                    codeBlock = code[index: index + snippetLength]
+                
+                if not bad:
+                    codeBlock = code[index: index + snippetLength]
+                    exterior = code[: index] + code[index + snippetLength: ]
+
+                    # check for shared labels
+                    bad = False
+                    
+                    codeBlockDefinedLabels = []
+                    codeBlockUsedLabels = []
+                    for line2 in codeBlock:
+                        if line2[0].startswith("."):
+                            codeBlockDefinedLabels.append(line2[0])
+                        else:
+                            for token in line2[1: ]:
+                                if token.startswith("."):
+                                    codeBlockUsedLabels.append(token)
+                
+                    for label in codeBlockUsedLabels:
+                        if label not in codeBlockDefinedLabels:
+                            bad = True
+                            break
+                        
+                    exteriorDefinedLabels = []
+                    exteriorUsedLabels = []
+                    for line2 in exterior:
+                        if line2[0].startswith("."):
+                            exteriorDefinedLabels.append(line2[0])
+                        else:
+                            for token in line2[1: ]:
+                                if token.startswith("."):
+                                    exteriorUsedLabels.append(token)
+                
+                    for label in exteriorUsedLabels:
+                        if label not in exteriorDefinedLabels:
+                            bad = True
+                            break
+                    
+                    if not bad:
+                        # try
+                        try:
+                            result = loopUnraveller(codeBlock, BITS, MINREG, MINHEAP + MINSTACK, maxCycles, M0)
+                            code = code[: index] + result + code[index + snippetLength: ]
+                            success = True
+                            return code, success
+                        except Exception as x:
+                            pass
+    
+    return code, success
+
 ## Optimsation By Emulation
 def OBE(code: list, BITS: int, MINREG: int, MINHEAP: int, MINSTACK: int, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20):
 
     # search code for codeblocks
-    # a codeblock must:
+    # a codeblock must contain:
         # no labels that point to DW values
         # no instructions that affect the stack pointer
         # no labels that point to code outside of the code block
@@ -4050,9 +4686,9 @@ def OBE(code: list, BITS: int, MINREG: int, MINHEAP: int, MINSTACK: int, maxCycl
     
     # try snippets of code
     for loop in range(MAXBLOCKSIZE):
-        snippetLength = loop
+        snippetLength = MAXBLOCKSIZE - loop
         
-        if snippetLength != 1:
+        if snippetLength > 1:
             for index in range(len(code[: -(snippetLength - 1)])):
                 bad = False
                 if index > 0:

@@ -154,9 +154,17 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20, compiled = F
             overallSuccess |= success
             optimisationCount += int(success)
             
-            """code, success = dowhileLODSTR(code)
+            code, success = STRlabelLOD(code, M0, int(MINHEAP, 0) + int(MINSTACK, 0))
             overallSuccess |= success
-            optimisationCount += int(success)"""
+            optimisationCount += int(success)
+            
+            code, success = STRbranchSTR(code, M0, int(MINHEAP, 0) + int(MINSTACK, 0))
+            overallSuccess |= success
+            optimisationCount += int(success)
+            
+            code, success = propagateConditionalBranch(code)
+            overallSuccess |= success
+            optimisationCount += int(success)
             
             if compiled:
                 code, success = HRSRHSAV(code)
@@ -350,13 +358,28 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20, compiled = F
         
         return code, MINREG, optimisationCount
     
+    def rulesAndLoopUnravel(code, MINREG, optimisationCount):
+        
+        overallSuccess = True
+        while overallSuccess:
+            overallSuccess = False
+            
+            code, MINREG, optimisationCount = ruleBasedOptimisations(code, MINREG, optimisationCount)
+            
+            ## Loop Unraveller
+            code, success = LU(code, BITS, MINREG, int(MINHEAP, 0), int(MINSTACK, 0), maxCycles, M0, MAXBLOCKSIZE)
+            overallSuccess |= success
+            optimisationCount += int(success)
+        
+        return code, MINREG, optimisationCount
+    
     overallSuccess = True
     optimisationCount = 0
     while overallSuccess == True:
         
         overallSuccess = False
         
-        code, MINREG, optimisationCount = ruleBasedOptimisations(code, MINREG, optimisationCount)
+        code, MINREG, optimisationCount = rulesAndLoopUnravel(code, MINREG, optimisationCount)
         
         #print("\n"*10 + "\n".join([" ".join(i) for i in code]))
         
