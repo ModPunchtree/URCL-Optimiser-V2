@@ -7,6 +7,7 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
         raise Exception("no")
 
     REGTotal = 29 # this is to make SP work
+    cycleLimit *= 2 # to compensate for increased instruction costs
 
     # if M0 is given, then all heap loads/stores are supported
 
@@ -281,6 +282,9 @@ def optimisationByEmulation(codeBlock__: list, BITS: int, REGTotal: int, HEAPTot
             raise Exception("PC out of range")
 
         line = codeBlock[PC]
+        
+        if PC == 120:
+            stop = 1
         
         instruction = line[0]
         operands = line.copy()
