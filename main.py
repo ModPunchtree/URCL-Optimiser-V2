@@ -61,7 +61,7 @@ async def on_message(message):
                 raise Exception("FATAL - Code block not specified (missing triple backticks: `)")
             code = code[: code.index("```")]
             
-            code, optimisationCount = optimiseURCL(code, 300)
+            code, optimisationCount = optimiseURCL(code, 500)
             
             result = ""
             for line in code:
