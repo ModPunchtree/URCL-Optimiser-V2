@@ -39,11 +39,11 @@ async def on_message(message):
         else:
             await message.channel.send(":regional_indicator_l::regional_indicator_o::regional_indicator_l:")
 
-    elif message.content.startswith("$help") and str(message.channel) not in ("syl-compiler", ""):
+    elif message.content.startswith("$help") and str(message.channel) not in ("syl-compiler", "urcl-bot"):
         await message.channel.send(":woman_shrugging:")
         return
 
-    elif str(message.channel) not in ("syl-compiler", ""):
+    elif str(message.channel) not in ("syl-compiler", "urcl-bot"):
         return
 
     elif message.content.startswith("$help"):
@@ -84,7 +84,7 @@ async def on_message(message):
             await message.channel.send(file=discord.File("output.txt"))
         return
 
-    elif message.content.startswith(("$SYLcompile -o", "$SYLcompile -O", "$SYLcompile-o", "$SYLcompile-O")):
+    elif (message.content.startswith(("$SYLcompile -o", "$SYLcompile -O", "$SYLcompile-o", "$SYLcompile-O"))) and (str(message.channel) == "syl-compiler"):
         # no optimisations
         await message.channel.send("Compiling...")
         try:
@@ -132,7 +132,7 @@ async def on_message(message):
             await message.channel.send(file=discord.File("output.txt"))
         return
 
-    elif message.content.startswith("$SYLcompile"):
+    elif (message.content.startswith("$SYLcompile")) and (str(message.channel) == "syl-compiler"):
         await message.channel.send("Compiling...")
         try:
             code = message.content[9: ]
