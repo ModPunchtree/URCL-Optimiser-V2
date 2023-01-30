@@ -28,6 +28,8 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20, compiled = F
 
     code, success = DWArraytoSingle(code)
 
+    # good
+
     code, uniqueNum, success = relativesToLabels(code, uniqueNum)
 
     code, success = standardiseSymbols(code)
@@ -47,8 +49,6 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20, compiled = F
     code, success = removeUnreachableCode(code)
 
     code, MINREG, success = reduceRegisters(code)
-
-    # good
 
     #########################################
 
@@ -365,6 +365,8 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20, compiled = F
             overallSuccess = False
             
             code, MINREG, optimisationCount = ruleBasedOptimisations(code, MINREG, optimisationCount)
+            
+            # bad
             
             ## Loop Unraveller
             code, success = LU(code, BITS, MINREG, int(MINHEAP, 0), int(MINSTACK, 0), maxCycles, M0, MAXBLOCKSIZE)

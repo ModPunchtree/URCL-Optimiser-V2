@@ -99,7 +99,7 @@ def tokenise(code: list):
         extendDouble = False
         # fix ' ' chars
         for index in range(len(raw) - 1):
-            if (raw[index] == "'") and (raw[index + 1] == "'"):
+            if ((raw[index] == "'") and (raw[index + 1] == "'")) or ((raw[index] == '"') and (raw[index + 1] == '"')):
                 raw[index] = "' '"
                 raw[index + 1] = ""
         for token in raw:
@@ -110,7 +110,7 @@ def tokenise(code: list):
                 bigToken = token
                 extendSingle = True
                 
-            if token.endswith('"') and extendDouble:
+            if (token.endswith('"')) and extendDouble:
                 extendDouble = False
                 if bigToken != token:
                     bigToken += " " + token
@@ -3280,6 +3280,8 @@ def propagateMOV(code: list):
                         success = True
                 
                 if line2[0].startswith("."):
+                    break
+                if (sourceReg == "SP") and (line2[0] in ("PSH", "POP", "CAL", "RET")):
                     break
                 if line2[0] in write1:
                     if (line2[1] == sourceReg) or (line2[1] == targetReg):
