@@ -1,111 +1,42 @@
-BITS == 32
-MINHEAP 4096
-MINSTACK 1024
-MOV R1 SP
-
-
-CAL ._Hx4maini8
-MOV SP R1
-HLT
-
-._Hx7printlnvs
-PSH R1
-MOV R1 SP
-
-LLOD R2 R1 2 
-.println_loop 
-LOD R3 R2 
-INC R2 R2 
-BRZ .println_end R3 
-OUT %TEXT R3 
-JMP .println_loop 
-.println_end 
-OUT %TEXT '\n' 
-MOV SP R1
-POP R1
-RET
-
-._Hx5inputvs
-PSH R1
-MOV R1 SP
-
-LLOD R3 R1 2 
-.input_loop 
-IN R2 %TEXT 
-BRZ .input_end R2 
-STR R3 R2 
-INC R3 R3 
-JMP .input_loop 
-.input_end 
-MOV SP R1
-POP R1
-RET
-
-._Hx4testvi8
-PSH R1
-MOV R1 SP
-
-MOV R2 .str0
-PSH R2
-
-LLOD R2 R1 2
-
-LLOD R3 R1 -1
-
-ADD R2 R2 0x30
-
-STR R3 R2
-
-LLOD R2 R1 -1
-PSH R2
-CAL ._Hx7printlnvs
-ADD SP SP 1
-
-MOV SP R1
-POP R1
-RET
-
-._Hx4maini8
-PSH R1
-MOV R1 SP
-
-AND R2 5 0xff
-PSH R2
-
-LLOD R3 R1 -1
-MLT R2 R3 2
-LSTR R1 -1 R2
-
-PSH 5
-CAL ._Hx4testvi8
-ADD SP SP 1
-
-LLOD R2 R1 -1
-IMM R3 1
-BNE .if1 R2 R3
-JMP .endif1
-.if1
-.while1
-LLOD R2 R1 -1
-IMM R3 0
-BRE .endwhile1 R2 R3
-PSH .str1
-CAL ._Hx7printlnvs
-ADD SP SP 1
-
-LLOD R3 R1 -1
-SUB R2 R3 1
-LSTR R1 -1 R2
-
-JMP .while1
-.endwhile1
-.endif1
-MOV SP R1
-POP R1
-RET
-
-.str0
-DW [ " " 0 ]
-
-.str1
-DW [ "a is not 0" 0 ]
+BITS 16
+.d
+DW ["OUT %TEXT 66\nOUT %TEXT 73\nOUT %TEXT 84\nOUT %TEXT 83\nOUT %TEXT 32\nOUT %TEXT 49\nOUT %TEXT 54\nOUT %TEXT 10\nOUT %TEXT 46\nOUT %TEXT 100\nOUT %TEXT 10\nOUT %TEXT 68\nOUT %TEXT 87\nOUT %TEXT 32\nOUT %TEXT 91\nOUT %TEXT 34\nIMM R0 .d\n.douta\nLOD R2 R1\nBNE .doutb R2 10\nOUT %TEXT 92\nOUT %TEXT 110\nJMP .doutc\n.doutb\nOUT %TEXT R2\n.doutc\nINC R1 R1\nBNZ .douta R2\nOUT %TEXT 34\nOUT %TEXT 32\nOUT %TEXT 48\nOUT %TEXT 93\nOUT %TEXT 10\nIMM R1 .d\n.code\nLOD R2 R1\nOUT %TEXT R2\nINC R1 R1\nBNZ .code R2" 0]
+OUT %TEXT 66
+OUT %TEXT 73
+OUT %TEXT 84
+OUT %TEXT 83
+OUT %TEXT 32
+OUT %TEXT 49
+OUT %TEXT 54
+OUT %TEXT 10
+OUT %TEXT 46
+OUT %TEXT 100
+OUT %TEXT 10
+OUT %TEXT 68
+OUT %TEXT 87
+OUT %TEXT 32
+OUT %TEXT 91
+OUT %TEXT 34
+IMM R0 .d
+.douta
+LOD R2 R1
+BNE .doutb R2 10
+OUT %TEXT 92
+OUT %TEXT 110
+JMP .doutc
+.doutb
+OUT %TEXT R2
+.doutc
+INC R1 R1
+BNZ .douta R2
+OUT %TEXT 34
+OUT %TEXT 32
+OUT %TEXT 48
+OUT %TEXT 93
+OUT %TEXT 10
+IMM R1 .d
+.code
+LOD R2 R1
+OUT %TEXT R2
+INC R1 R1
+BNZ .code R2

@@ -366,8 +366,8 @@ def optimiseURCL(code, maxCycles = 500, M0 = -1, MAXBLOCKSIZE = 20, compiled = F
             
             code, MINREG, optimisationCount = ruleBasedOptimisations(code, MINREG, optimisationCount)
             
-            # bad
-            
+            #print("\n"*10 + "\n".join([" ".join(i) for i in code]))
+
             ## Loop Unraveller
             code, success = LU(code, BITS, MINREG, int(MINHEAP, 0), int(MINSTACK, 0), maxCycles, M0, MAXBLOCKSIZE)
             overallSuccess |= success

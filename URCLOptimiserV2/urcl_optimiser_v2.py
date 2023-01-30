@@ -114,12 +114,16 @@ def tokenise(code: list):
                 extendDouble = False
                 if bigToken != token:
                     bigToken += " " + token
+                if bigToken == "'\\'":
+                    bigToken = "'\\\\'"
                 new.append(bigToken)
                 
             elif token.endswith("'") and extendSingle:
                 extendSingle = False
                 if bigToken != token:
                     bigToken += " " + token
+                if bigToken == "'\\'":
+                    bigToken = "'\\\\'"
                 new.append(bigToken)
                 
             elif extendSingle or extendDouble:
@@ -127,6 +131,8 @@ def tokenise(code: list):
                     bigToken += " " + token
                 
             elif token:
+                if token == "'\\'":
+                    token = "'\\\\'"
                 new.append(token)
                 
         code2.append(new)
@@ -287,7 +293,15 @@ def DWArraytoSingle(code: list):
                 for token in tokens:
                     if token.startswith(("'", '"')):
                         for char in token[1: -1]:
-                            result.append(["DW", f"'{char}'"])
+                            if char == "\\":
+                                result.append(["DW", f"'\\\\'"])
+                            #elif (char == "n") and (len(result) > 0):
+                            #    if result[-1][1] == "'\\\\'":
+                            #        result[-1][1] = "'\n'"
+                            #    else:
+                            #        result.append(["DW", f"'{char}'"])
+                            else:
+                                result.append(["DW", f"'{char}'"])
                     else:
                         result.append(["DW", token])
                 code = code[: index] + result + code[index + 1: ]
